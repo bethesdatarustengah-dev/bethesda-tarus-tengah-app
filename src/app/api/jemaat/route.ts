@@ -1,0 +1,191 @@
+import { NextResponse } from "next/server";
+import { z } from "zod";
+
+import { createResponse } from "@/lib/api-response";
+import { withErrorHandling } from "@/lib/api-handler";
+import { AppError, NotFoundError } from "@/lib/errors";
+import { generateId } from "@/lib/id";
+import { prisma } from "@/lib/prisma";
+
+const keluargaBaruSchema = z.object({
+  nikKepala: z.string().length(16),
+  idStatusKepemilikan: z.string().length(10),
+  idRayon: z.string().length(10),
+  idStatusTanah: z.string().length(10),
+  alamat: z.object({
+    idKelurahan: z.string().length(10),
+    jalan: z.string().min(2).max(50),
+    RT: z.coerce.number().int().min(0),
+    RW: z.coerce.number().int().min(0),
+  }),
+});
+
+const jemaatSchema = z.object({
+  idJemaat: z.string().length(16),
+  nama: z.string().min(2).max(50),
+  jenisKelamin: z.boolean(),
+  tanggalLahir: z.coerce.date(),
+  golDarah: z.string().max(5).optional(),
+  statusDalamKel: z.string().length(10),
+  idPendidikan: z.string().length(10).optional(),
+  idPekerjaan: z.string().length(10).optional(),
+  idPendapatan: z.string().length(10).optional(),
+  idJaminan: z.string().length(10).optional(),
+  idPernikahan: z.string().length(10).optional(),
+  idBaptis: z.string().length(10).optional(),
+  idSidi: z.string().length(10).optional(),
+});
+
+const createSchema = jemaatSchema.extend({
+  idKeluarga: z.string().length(16).optional(),
+  nikKepalaKeluarga: z.string().length(16).optional(),
+  keluargaBaru: keluargaBaruSchema.optional(),
+});
+
+const includeOptions = {
+  keluarga: {
+    include: {
+      alamat: {
+        include: {
+          kelurahan: {
+            include: {
+              kecamatan: {
+                include: {
+                  kotaKab: {
+                    include: { provinsi: true },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      rayon: true,
+      statusKepemilikan: true,
+      statusTanah: true,
+    },
+  },
+  status: true,
+  pendidikan: true,
+  pekerjaan: true,
+  pendapatan: true,
+  jaminan: true,
+  pernikahan: true,
+  baptisOwned: true,
+  sidiOwned: true,
+  jabatanRel: {
+    include: {
+      jabatan: true,
+    },
+  },
+};
+
+const resolveKeluargaId = async (payload: z.infer<typeof createSchema>) => {
+  if (payload.idKeluarga) {
+    return payload.idKeluarga;
+  }
+
+  if (payload.nikKepalaKeluarga) {
+    const keluarga = await prisma.keluarga.findUnique({
+      where: { nikKepala: payload.nikKepalaKeluarga },
+      select: { idKeluarga: true },
+    });
+
+    if (!keluarga) {
+      throw new NotFoundError("Keluarga dengan NIK tersebut tidak ditemukan");
+    }
+
+    return keluarga.idKeluarga;
+  }
+
+  if (payload.keluargaBaru) {
+    const alamat = await prisma.alamat.create({
+      data: {
+        idAlamat: generateId(10),
+        ...payload.keluargaBaru.alamat,
+      },
+    });
+
+    const keluarga = await prisma.keluarga.create({
+      data: {
+        idKeluarga: generateId(16),
+        nikKepala: payload.keluargaBaru.nikKepala,
+        idAlamat: alamat.idAlamat,
+        idStatusKepemilikan: payload.keluargaBaru.idStatusKepemilikan,
+        idRayon: payload.keluargaBaru.idRayon,
+        idStatusTanah: payload.keluargaBaru.idStatusTanah,
+      },
+    });
+
+    return keluarga.idKeluarga;
+  }
+
+  throw new AppError("Informasi keluarga tidak lengkap", 400);
+};
+
+export const GET = withErrorHandling(async (request) => {
+  const { searchParams } = new URL(request.url);
+  const search = searchParams.get("search") ?? "";
+  const page = Number(searchParams.get("page") ?? 1);
+  const limit = Number(searchParams.get("limit") ?? 20);
+  const skip = (page - 1) * limit;
+
+  const where = search
+    ? {
+        OR: [
+          { nama: { contains: search, mode: "insensitive" } },
+          { idJemaat: { contains: search, mode: "insensitive" } },
+        ],
+      }
+    : undefined;
+
+  const [items, total] = await Promise.all([
+    prisma.jemaat.findMany({
+      where,
+      skip,
+      take: limit,
+      orderBy: { nama: "asc" },
+      include: includeOptions,
+    }),
+    prisma.jemaat.count({ where }),
+  ]);
+
+  return NextResponse.json(
+    createResponse(true, {
+      items,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    }),
+  );
+});
+
+export const POST = withErrorHandling(async (request) => {
+  const payload = await request.json();
+  const parsed = createSchema.safeParse(payload);
+
+  if (!parsed.success) {
+    throw new AppError("Validasi gagal", 400, parsed.error.flatten().fieldErrors);
+  }
+
+  const data = parsed.data;
+
+  const keluargaId = await resolveKeluargaId(data);
+
+  const created = await prisma.jemaat.create({
+    data: {
+      ...data,
+      idKeluarga: keluargaId,
+    },
+    include: includeOptions,
+  });
+
+  return NextResponse.json(
+    createResponse(true, created, "Jemaat berhasil ditambahkan"),
+    { status: 201 },
+  );
+});
+

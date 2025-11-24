@@ -1,0 +1,326 @@
+"use client";
+
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { toast } from "sonner";
+
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+
+type Keluarga = {
+  idKeluarga: string;
+  nikKepala: string;
+  rayon?: { namaRayon: string };
+  statusKepemilikan?: { status: string };
+};
+
+type Masters = {
+  statusKepemilikan: Array<{ idStatusKepemilikan: string; status: string }>;
+  statusTanah: Array<{ idStatusTanah: string; status: string }>;
+  rayon: Array<{ idRayon: string; namaRayon: string }>;
+  kelurahan: Array<{ idKelurahan: string; nama: string }>;
+};
+
+type Props = {
+  initialData: Keluarga[];
+  masters: Masters;
+};
+
+const schema = z.object({
+  nikKepala: z.string().length(16),
+  idStatusKepemilikan: z.string(),
+  idStatusTanah: z.string(),
+  idRayon: z.string(),
+  idKelurahan: z.string(),
+  jalan: z.string().min(3),
+  RT: z.coerce.number().int().min(0),
+  RW: z.coerce.number().int().min(0),
+});
+
+type FormValues = z.infer<typeof schema>;
+
+export default function KeluargaModule({ initialData, masters }: Props) {
+  const [items, setItems] = useState(initialData);
+  const [open, setOpen] = useState(false);
+
+  const form = useForm<FormValues>({
+    resolver: zodResolver(schema),
+  });
+
+  const handleSubmit = async (values: FormValues) => {
+    try {
+      const payload = {
+        nikKepala: values.nikKepala,
+        idStatusKepemilikan: values.idStatusKepemilikan,
+        idStatusTanah: values.idStatusTanah,
+        idRayon: values.idRayon,
+        alamat: {
+          idKelurahan: values.idKelurahan,
+          jalan: values.jalan,
+          RT: values.RT,
+          RW: values.RW,
+        },
+      };
+
+      const res = await fetch("/api/keluarga", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data?.message ?? "Gagal menyimpan keluarga");
+      }
+
+      setItems((prev) => [data.data, ...prev]);
+      setOpen(false);
+      form.reset();
+      toast.success("Keluarga berhasil ditambahkan");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Terjadi kesalahan");
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-semibold tracking-tight">Data Keluarga</h2>
+          <p className="text-sm text-muted-foreground">
+            Daftar kepala keluarga beserta rayon.
+          </p>
+        </div>
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogTrigger asChild>
+            <Button>Tambah Keluarga</Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-xl">
+            <DialogHeader>
+              <DialogTitle>Keluarga Baru</DialogTitle>
+            </DialogHeader>
+            <Form {...form}>
+              <form className="space-y-4" onSubmit={form.handleSubmit(handleSubmit)}>
+                <FormField
+                  control={form.control}
+                  name="nikKepala"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>NIK Kepala Keluarga</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <FormField
+                    control={form.control}
+                    name="idRayon"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Rayon</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Pilih" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {masters.rayon.map((item) => (
+                              <SelectItem key={item.idRayon} value={item.idRayon}>
+                                {item.namaRayon}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="idStatusKepemilikan"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Status Kepemilikan</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Pilih" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {masters.statusKepemilikan.map((item) => (
+                              <SelectItem
+                                key={item.idStatusKepemilikan}
+                                value={item.idStatusKepemilikan}
+                              >
+                                {item.status}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="idStatusTanah"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Status Tanah</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Pilih" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {masters.statusTanah.map((item) => (
+                              <SelectItem
+                                key={item.idStatusTanah}
+                                value={item.idStatusTanah}
+                              >
+                                {item.status}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="idKelurahan"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Kelurahan</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Pilih" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent className="max-h-60">
+                            {masters.kelurahan.map((item) => (
+                              <SelectItem
+                                key={item.idKelurahan}
+                                value={item.idKelurahan}
+                              >
+                                {item.nama}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                <FormField
+                  control={form.control}
+                  name="jalan"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Alamat Jalan</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="RT"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>RT</FormLabel>
+                        <FormControl>
+                          <Input type="number" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="RW"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>RW</FormLabel>
+                        <FormControl>
+                          <Input type="number" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                <DialogFooter>
+                  <Button type="submit">Simpan</Button>
+                </DialogFooter>
+              </form>
+            </Form>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      <div className="overflow-x-auto rounded-lg border bg-card">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>ID Keluarga</TableHead>
+              <TableHead>NIK Kepala</TableHead>
+              <TableHead>Rayon</TableHead>
+              <TableHead>Status Rumah</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {items.map((item) => (
+              <TableRow key={item.idKeluarga}>
+                <TableCell className="font-mono text-sm">{item.idKeluarga}</TableCell>
+                <TableCell>{item.nikKepala}</TableCell>
+                <TableCell>{item.rayon?.namaRayon ?? "-"}</TableCell>
+                <TableCell>{item.statusKepemilikan?.status ?? "-"}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+    </div>
+  );
+}
+
