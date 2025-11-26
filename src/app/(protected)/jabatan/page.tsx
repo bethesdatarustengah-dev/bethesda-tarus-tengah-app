@@ -20,7 +20,7 @@ export default async function JabatanPage() {
     prisma.jabatan.findMany({ orderBy: { namaJabatan: "asc" } }),
   ]);
 
-  const serializedAssignments = assignments.map((a) => ({
+  const serializedAssignments = assignments.map((a: any) => ({
     ...a,
     tanggalMulai: a.tanggalMulai instanceof Date ? a.tanggalMulai.toISOString() : String(a.tanggalMulai),
     tanggalBerakhir: a.tanggalBerakhir
