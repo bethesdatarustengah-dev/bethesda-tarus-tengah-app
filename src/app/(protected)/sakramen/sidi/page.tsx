@@ -21,9 +21,9 @@ export default async function SakramenSidiPage() {
 
   const serializeDate = (d: any) => (d instanceof Date ? d.toISOString() : String(d));
 
-  const serializedBaptis = baptis.map((b) => ({ ...b, tanggal: serializeDate(b.tanggal) }));
-  const serializedSidi = sidi.map((s) => ({ ...s, tanggal: serializeDate(s.tanggal) }));
-  const serializedPernikahan = pernikahan.map((p) => ({ ...p, tanggal: serializeDate(p.tanggal) }));
+  const serializedBaptis = baptis.map((b: any) => ({ ...b, tanggal: serializeDate(b.tanggal) }));
+  const serializedSidi = sidi.map((s: any) => ({ ...s, tanggal: serializeDate(s.tanggal) }));
+  const serializedPernikahan = pernikahan.map((p: any) => ({ ...p, tanggal: serializeDate(p.tanggal) }));
 
   return (
     <SakramenModule

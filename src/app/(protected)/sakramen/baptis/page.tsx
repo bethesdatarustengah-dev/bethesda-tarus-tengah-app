@@ -23,17 +23,17 @@ export default async function SakramenBaptisPage() {
   ]);
   const serializeDate = (d: any) => (d instanceof Date ? d.toISOString() : String(d));
 
-  const serializedBaptis = baptis.map((b) => ({
+  const serializedBaptis = baptis.map((b: any) => ({
     ...b,
     tanggal: serializeDate(b.tanggal),
   }));
 
-  const serializedSidi = sidi.map((s) => ({
+  const serializedSidi = sidi.map((s: any) => ({
     ...s,
     tanggal: serializeDate(s.tanggal),
   }));
 
-  const serializedPernikahan = pernikahan.map((p) => ({
+  const serializedPernikahan = pernikahan.map((p: any) => ({
     ...p,
     tanggal: serializeDate(p.tanggal),
   }));
