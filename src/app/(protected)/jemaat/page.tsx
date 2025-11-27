@@ -68,7 +68,7 @@ export default async function JemaatPage() {
     prisma.kelurahan.findMany({ orderBy: { nama: "asc" } }),
   ]);
 
-  const serializedJemaat = jemaat.map((j) => ({
+  const serializedJemaat = jemaat.map((j: any) => ({
     ...j,
     tanggalLahir: j.tanggalLahir instanceof Date ? j.tanggalLahir.toISOString() : String(j.tanggalLahir),
   }));
