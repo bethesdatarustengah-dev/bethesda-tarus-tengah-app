@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { z } from "zod";
 
 import { createResponse } from "@/lib/api-response";
@@ -22,17 +23,17 @@ export const GET = withErrorHandling(async (request) => {
   const { searchParams } = new URL(request.url);
   const search = searchParams.get("search") ?? "";
 
-  const where: any = search
+  const where: Prisma.PernikahanWhereInput | undefined = search
     ? {
-        OR: [
-          { klasis: { contains: search, mode: "insensitive" } },
-          {
-            jemaats: {
-              some: { nama: { contains: search, mode: "insensitive" } },
-            },
+      OR: [
+        { klasis: { contains: search, mode: "insensitive" } },
+        {
+          jemaats: {
+            some: { nama: { contains: search, mode: "insensitive" } },
           },
-        ],
-      }
+        },
+      ],
+    }
     : undefined;
 
   const items = await prisma.pernikahan.findMany({
@@ -69,7 +70,7 @@ export const POST = withErrorHandling(async (request) => {
     );
   }
 
-  const created = await prisma.$transaction(async (tx: any) => {
+  const created = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     const pernikahan = await tx.pernikahan.create({
       data: {
         idPernikahan: data.idPernikahan ?? generateId(10),
