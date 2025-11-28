@@ -37,6 +37,10 @@ export const prisma =
   });
 
 if (process.env.NODE_ENV !== "production") {
+  console.log("Initializing Prisma Client...");
+}
+
+if (process.env.NODE_ENV !== "production") {
   globalForPrisma.prisma = prisma;
   globalForPrisma.pgPool = pgPool;
 }

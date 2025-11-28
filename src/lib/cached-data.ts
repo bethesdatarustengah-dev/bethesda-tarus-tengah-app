@@ -69,3 +69,19 @@ export const getJabatan = unstable_cache(
     ["jabatan"],
     { revalidate: REVALIDATE_TIME, tags: ["master-data"] }
 );
+
+export const getDashboardStats = unstable_cache(
+    async () => {
+        // Execute in a transaction to use a single connection
+        const [jemaat, keluarga, baptis, pernikahan] = await prisma.$transaction([
+            prisma.jemaat.count(),
+            prisma.keluarga.count(),
+            prisma.baptis.count(),
+            prisma.pernikahan.count(),
+        ]);
+
+        return { jemaat, keluarga, baptis, pernikahan };
+    },
+    ["dashboard-stats"],
+    { revalidate: 60, tags: ["dashboard"] }
+);

@@ -15,17 +15,12 @@ const cards = [
   { key: "pernikahan", label: "Data Pernikahan" },
 ] as const;
 
-import { prisma } from "@/lib/prisma";
+import { getDashboardStats } from "@/lib/cached-data";
 
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
-  const [jemaat, keluarga, baptis, pernikahan] = await Promise.all([
-    prisma.jemaat.count(),
-    prisma.keluarga.count(),
-    prisma.baptis.count(),
-    prisma.pernikahan.count(),
-  ]);
+  const { jemaat, keluarga, baptis, pernikahan } = await getDashboardStats();
 
   const summary: DashboardSummary = {
     success: true,
