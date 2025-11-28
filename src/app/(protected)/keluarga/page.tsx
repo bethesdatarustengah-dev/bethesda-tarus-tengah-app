@@ -1,5 +1,11 @@
 import KeluargaModule from "@/components/modules/keluarga/keluarga-module";
 import { prisma } from "@/lib/prisma";
+import {
+  getRayon,
+  getStatusKepemilikanRumah,
+  getStatusTanah,
+  getKelurahan,
+} from "@/lib/cached-data";
 
 export const dynamic = "force-dynamic";
 
@@ -30,17 +36,16 @@ const keluargaInclude = {
 };
 
 export default async function KeluargaPage() {
-  const [keluarga, statusKepemilikan, statusTanah, rayon, kelurahan] =
-    await Promise.all([
-      prisma.keluarga.findMany({
-        orderBy: { nikKepala: "asc" },
-        include: keluargaInclude,
-      }),
-      prisma.statusKepemilikanRumah.findMany({ orderBy: { status: "asc" } }),
-      prisma.statusTanah.findMany({ orderBy: { status: "asc" } }),
-      prisma.rayon.findMany({ orderBy: { namaRayon: "asc" } }),
-      prisma.kelurahan.findMany({ orderBy: { nama: "asc" } }),
-    ]);
+  const [keluarga, rayon, statusKepemilikan, statusTanah, kelurahan] = await Promise.all([
+    prisma.keluarga.findMany({
+      orderBy: { nikKepala: "asc" },
+      include: keluargaInclude,
+    }),
+    getRayon(),
+    getStatusKepemilikanRumah(),
+    getStatusTanah(),
+    getKelurahan(),
+  ]);
 
   return (
     <KeluargaModule
@@ -54,4 +59,3 @@ export default async function KeluargaPage() {
     />
   );
 }
-

@@ -41,6 +41,18 @@ const jemaatInclude = {
   },
 };
 
+import {
+  getStatusDalamKeluarga,
+  getPendidikan,
+  getPekerjaan,
+  getPendapatan,
+  getJaminanKes,
+  getStatusKepemilikanRumah,
+  getStatusTanah,
+  getRayon,
+  getKelurahan,
+} from "@/lib/cached-data";
+
 export default async function JemaatPage() {
   const [
     jemaat,
@@ -59,15 +71,15 @@ export default async function JemaatPage() {
       orderBy: { nama: "asc" },
       include: jemaatInclude,
     }),
-    prisma.statusDalamKeluarga.findMany({ orderBy: { status: "asc" } }),
-    prisma.pendidikan.findMany({ orderBy: { jenjang: "asc" } }),
-    prisma.pekerjaan.findMany({ orderBy: { namaPekerjaan: "asc" } }),
-    prisma.pendapatan.findMany({ orderBy: { rentang: "asc" } }),
-    prisma.jaminanKes.findMany({ orderBy: { jenisJaminan: "asc" } }),
-    prisma.statusKepemilikanRumah.findMany({ orderBy: { status: "asc" } }),
-    prisma.statusTanah.findMany({ orderBy: { status: "asc" } }),
-    prisma.rayon.findMany({ orderBy: { namaRayon: "asc" } }),
-    prisma.kelurahan.findMany({ orderBy: { nama: "asc" } }),
+    getStatusDalamKeluarga(),
+    getPendidikan(),
+    getPekerjaan(),
+    getPendapatan(),
+    getJaminanKes(),
+    getStatusKepemilikanRumah(),
+    getStatusTanah(),
+    getRayon(),
+    getKelurahan(),
   ]);
 
   const serializedJemaat = jemaat.map((j: any) => ({

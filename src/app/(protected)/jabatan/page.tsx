@@ -1,6 +1,8 @@
 import JemaatJabatanModule from "@/components/modules/jabatan/jemaat-jabatan-module";
 import { prisma } from "@/lib/prisma";
 
+import { getJabatan } from "@/lib/cached-data";
+
 export const dynamic = "force-dynamic";
 
 export default async function JabatanPage() {
@@ -19,7 +21,7 @@ export default async function JabatanPage() {
       },
       take: 200,
     }),
-    prisma.jabatan.findMany({ orderBy: { namaJabatan: "asc" } }),
+    getJabatan(),
   ]);
 
   const serializedAssignments = assignments.map((a: any) => ({

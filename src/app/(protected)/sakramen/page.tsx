@@ -1,6 +1,8 @@
 import SakramenModule from "@/components/modules/sakramen/sakramen-module";
 import { prisma } from "@/lib/prisma";
 
+import { getKlasis } from "@/lib/cached-data";
+
 export const dynamic = "force-dynamic";
 
 export default async function SakramenPage() {
@@ -48,7 +50,7 @@ export default async function SakramenPage() {
       },
       take: 200,
     }),
-    prisma.klasis.findMany({ orderBy: { nama: "asc" } }),
+    getKlasis(),
   ]);
 
   const serializeDate = (d: any) => (d instanceof Date ? d.toISOString() : String(d));
