@@ -24,7 +24,7 @@ const pgPool =
   globalForPrisma.pgPool ??
   new Pool({
     connectionString,
-    max: 20,
+    max: 1,
   });
 
 const adapter = new PrismaPg(pgPool);
