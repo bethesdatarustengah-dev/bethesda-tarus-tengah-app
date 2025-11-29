@@ -15,8 +15,8 @@ const updateSchema = z
   .partial();
 
 const paramsSchema = z.object({
-  idJemaat: z.string().length(16),
-  idJabatan: z.string().length(10),
+  idJemaat: z.string().min(1),
+  idJabatan: z.string().min(1),
   tanggalMulai: z.string(),
 });
 
@@ -35,7 +35,8 @@ const parseParams = (params: Record<string, string>) => {
 };
 
 export const PATCH = withErrorHandling(async (request, context) => {
-  const keys = parseParams(context.params as Record<string, string>);
+  const params = await context.params;
+  const keys = parseParams(params as Record<string, string>);
   const payload = await request.json();
   const parsed = updateSchema.safeParse(payload);
 
@@ -57,7 +58,8 @@ export const PATCH = withErrorHandling(async (request, context) => {
 });
 
 export const DELETE = withErrorHandling(async (_request, context) => {
-  const keys = parseParams(context.params as Record<string, string>);
+  const params = await context.params;
+  const keys = parseParams(params as Record<string, string>);
 
   await prisma.jemaatJabatan.delete({
     where: { idJemaat_idJabatan_tanggalMulai: keys },

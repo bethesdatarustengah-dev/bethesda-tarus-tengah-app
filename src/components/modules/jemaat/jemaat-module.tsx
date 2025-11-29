@@ -311,7 +311,7 @@ export default function JemaatModule({ initialData, masters, isLoading }: Props)
                         <FormLabel>Jenis Kelamin</FormLabel>
                         <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
-                            <SelectTrigger>
+                            <SelectTrigger className="w-full">
                               <SelectValue placeholder="Pilih" />
                             </SelectTrigger>
                           </FormControl>
@@ -345,7 +345,7 @@ export default function JemaatModule({ initialData, masters, isLoading }: Props)
                         <FormLabel>Status Dalam Keluarga</FormLabel>
                         <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
-                            <SelectTrigger>
+                            <SelectTrigger className="w-full">
                               <SelectValue placeholder="Pilih status" />
                             </SelectTrigger>
                           </FormControl>
@@ -385,7 +385,7 @@ export default function JemaatModule({ initialData, masters, isLoading }: Props)
                         <FormLabel>Pendidikan</FormLabel>
                         <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
-                            <SelectTrigger>
+                            <SelectTrigger className="w-full">
                               <SelectValue placeholder="Pilih" />
                             </SelectTrigger>
                           </FormControl>
@@ -409,7 +409,7 @@ export default function JemaatModule({ initialData, masters, isLoading }: Props)
                         <FormLabel>Pekerjaan</FormLabel>
                         <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
-                            <SelectTrigger>
+                            <SelectTrigger className="w-full">
                               <SelectValue placeholder="Pilih" />
                             </SelectTrigger>
                           </FormControl>
@@ -433,7 +433,7 @@ export default function JemaatModule({ initialData, masters, isLoading }: Props)
                         <FormLabel>Pendapatan</FormLabel>
                         <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
-                            <SelectTrigger>
+                            <SelectTrigger className="w-full">
                               <SelectValue placeholder="Pilih" />
                             </SelectTrigger>
                           </FormControl>
@@ -457,7 +457,7 @@ export default function JemaatModule({ initialData, masters, isLoading }: Props)
                         <FormLabel>Jaminan Kesehatan</FormLabel>
                         <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
-                            <SelectTrigger>
+                            <SelectTrigger className="w-full">
                               <SelectValue placeholder="Pilih" />
                             </SelectTrigger>
                           </FormControl>
@@ -518,7 +518,7 @@ export default function JemaatModule({ initialData, masters, isLoading }: Props)
                             <FormLabel>Status Kepemilikan Rumah</FormLabel>
                             <Select onValueChange={field.onChange} value={field.value}>
                               <FormControl>
-                                <SelectTrigger>
+                                <SelectTrigger className="w-full">
                                   <SelectValue placeholder="Pilih" />
                                 </SelectTrigger>
                               </FormControl>
@@ -545,7 +545,7 @@ export default function JemaatModule({ initialData, masters, isLoading }: Props)
                             <FormLabel>Status Tanah</FormLabel>
                             <Select onValueChange={field.onChange} value={field.value}>
                               <FormControl>
-                                <SelectTrigger>
+                                <SelectTrigger className="w-full">
                                   <SelectValue placeholder="Pilih" />
                                 </SelectTrigger>
                               </FormControl>
@@ -572,7 +572,7 @@ export default function JemaatModule({ initialData, masters, isLoading }: Props)
                             <FormLabel>Rayon</FormLabel>
                             <Select onValueChange={field.onChange} value={field.value}>
                               <FormControl>
-                                <SelectTrigger>
+                                <SelectTrigger className="w-full">
                                   <SelectValue placeholder="Pilih" />
                                 </SelectTrigger>
                               </FormControl>
@@ -596,7 +596,7 @@ export default function JemaatModule({ initialData, masters, isLoading }: Props)
                             <FormLabel>Kelurahan</FormLabel>
                             <Select onValueChange={field.onChange} value={field.value}>
                               <FormControl>
-                                <SelectTrigger>
+                                <SelectTrigger className="w-full">
                                   <SelectValue placeholder="Pilih" />
                                 </SelectTrigger>
                               </FormControl>

@@ -32,8 +32,18 @@ import {
   DialogTrigger,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Search } from "lucide-react";
+import { Search, Pencil, Trash2 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 type Assignment = {
   idJemaat: string;
@@ -42,6 +52,7 @@ type Assignment = {
   tanggalBerakhir?: string | null;
   statusAktif: boolean;
   jabatan?: { namaJabatan: string };
+  catatan?: string | null;
 };
 
 type Props = {
@@ -70,6 +81,9 @@ export default function JemaatJabatanModule({ initialData, masters }: Props) {
   const [items, setItems] = useState(initialData);
   const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [editingItem, setEditingItem] = useState<Assignment | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Assignment | null>(null);
 
   const filteredItems = items.filter((item) => {
     const searchLower = searchQuery.toLowerCase();
@@ -91,44 +105,95 @@ export default function JemaatJabatanModule({ initialData, masters }: Props) {
 
   const onSubmit = async (values: FormValues) => {
     try {
-      const res = await fetch("/api/jemaat-jabatan", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(values),
-      });
-      const payload = await res.json();
+      if (editingItem) {
+        const res = await fetch(
+          `/api/jemaat-jabatan/${encodeURIComponent(editingItem.idJemaat)}/${encodeURIComponent(editingItem.idJabatan)}/${encodeURIComponent(editingItem.tanggalMulai)}`,
+          {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              tanggalBerakhir: values.tanggalBerakhir,
+              statusAktif: values.statusAktif,
+              catatan: values.catatan,
+            }),
+          }
+        );
+        const payload = await res.json();
+        if (!res.ok) throw new Error(payload?.message ?? "Gagal memperbarui jabatan");
 
-      if (!res.ok) {
-        throw new Error(payload?.message ?? "Gagal menambahkan jabatan");
+        setItems((prev) =>
+          prev.map((item) =>
+            item.idJemaat === editingItem.idJemaat &&
+              item.idJabatan === editingItem.idJabatan &&
+              item.tanggalMulai === editingItem.tanggalMulai
+              ? { ...item, ...payload.data }
+              : item
+          )
+        );
+        toast.success("Jabatan diperbarui");
+      } else {
+        const res = await fetch("/api/jemaat-jabatan", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(values),
+        });
+        const payload = await res.json();
+
+        if (!res.ok) {
+          throw new Error(payload?.message ?? "Gagal menambahkan jabatan");
+        }
+
+        setItems((prev) => [payload.data, ...prev]);
+        toast.success("Jabatan jemaat tersimpan");
       }
-
-      setItems((prev) => [payload.data, ...prev]);
-      setItems((prev) => [payload.data, ...prev]);
       form.reset({ statusAktif: true });
       setOpen(false);
-      toast.success("Jabatan jemaat tersimpan");
+      setEditingItem(null);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Terjadi kesalahan");
     }
   };
 
-  const removeAssignment = async (assignment: Assignment) => {
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
     try {
-      await fetch(buildDeletePath(assignment), { method: "DELETE" });
+      await fetch(buildDeletePath(deleteTarget), { method: "DELETE" });
       setItems((prev) =>
         prev.filter(
           (item) =>
             !(
-              item.idJemaat === assignment.idJemaat &&
-              item.idJabatan === assignment.idJabatan &&
-              item.tanggalMulai === assignment.tanggalMulai
-            ),
-        ),
+              item.idJemaat === deleteTarget.idJemaat &&
+              item.idJabatan === deleteTarget.idJabatan &&
+              item.tanggalMulai === deleteTarget.tanggalMulai
+            )
+        )
       );
       toast.success("Relasi jabatan dihapus");
     } catch {
       toast.error("Gagal menghapus data");
     }
+    setDeleteDialogOpen(false);
+    setDeleteTarget(null);
+  };
+
+  const openDeleteDialog = (item: Assignment) => {
+    setDeleteTarget(item);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleEdit = (item: Assignment) => {
+    setEditingItem(item);
+    form.reset({
+      idJemaat: item.idJemaat,
+      idJabatan: item.idJabatan,
+      tanggalMulai: new Date(item.tanggalMulai).toISOString().split("T")[0],
+      tanggalBerakhir: item.tanggalBerakhir
+        ? new Date(item.tanggalBerakhir).toISOString().split("T")[0]
+        : undefined,
+      statusAktif: item.statusAktif,
+      catatan: item.catatan ?? undefined,
+    });
+    setOpen(true);
   };
 
   return (
@@ -147,7 +212,7 @@ export default function JemaatJabatanModule({ initialData, masters }: Props) {
           </DialogTrigger>
           <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>
-              <DialogTitle>Tambah Jabatan Jemaat</DialogTitle>
+              <DialogTitle>{editingItem ? "Edit Jabatan Jemaat" : "Tambah Jabatan Jemaat"}</DialogTitle>
             </DialogHeader>
             <Form {...form}>
               <form
@@ -162,7 +227,7 @@ export default function JemaatJabatanModule({ initialData, masters }: Props) {
                       <FormLabel>Jemaat</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
-                          <SelectTrigger>
+                          <SelectTrigger disabled={!!editingItem}>
                             <SelectValue placeholder="Pilih jemaat" />
                           </SelectTrigger>
                         </FormControl>
@@ -186,7 +251,7 @@ export default function JemaatJabatanModule({ initialData, masters }: Props) {
                       <FormLabel>Jabatan</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
-                          <SelectTrigger>
+                          <SelectTrigger disabled={!!editingItem}>
                             <SelectValue placeholder="Pilih jabatan" />
                           </SelectTrigger>
                         </FormControl>
@@ -210,7 +275,7 @@ export default function JemaatJabatanModule({ initialData, masters }: Props) {
                       <FormItem>
                         <FormLabel>Tanggal Mulai</FormLabel>
                         <FormControl>
-                          <Input type="date" {...field} />
+                          <Input type="date" {...field} disabled={!!editingItem} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -300,13 +365,21 @@ export default function JemaatJabatanModule({ initialData, masters }: Props) {
                     : ""}
                 </TableCell>
                 <TableCell>{item.statusAktif ? "Aktif" : "Nonaktif"}</TableCell>
-                <TableCell>
+                <TableCell className="flex gap-2 justify-end">
                   <Button
-                    onClick={() => removeAssignment(item)}
-                    size="sm"
+                    onClick={() => handleEdit(item)}
+                    size="icon"
                     variant="ghost"
                   >
-                    Hapus
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    onClick={() => openDeleteDialog(item)}
+                    size="icon"
+                    variant="ghost"
+                    className="text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4" />
                   </Button>
                 </TableCell>
               </TableRow>
@@ -314,7 +387,25 @@ export default function JemaatJabatanModule({ initialData, masters }: Props) {
           </TableBody>
         </Table>
       </div>
-    </div>
+
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Apakah Anda yakin?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tindakan ini tidak dapat dibatalkan. Data akan dihapus secara permanen dari database.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Hapus
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div >
   );
 }
 

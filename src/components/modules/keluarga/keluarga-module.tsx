@@ -224,7 +224,7 @@ export default function KeluargaModule({ initialData, masters, isLoading }: Prop
                         <FormLabel>Rayon</FormLabel>
                         <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
-                            <SelectTrigger>
+                            <SelectTrigger className="w-full">
                               <SelectValue placeholder="Pilih" />
                             </SelectTrigger>
                           </FormControl>
@@ -248,7 +248,7 @@ export default function KeluargaModule({ initialData, masters, isLoading }: Prop
                         <FormLabel>Status Kepemilikan</FormLabel>
                         <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
-                            <SelectTrigger>
+                            <SelectTrigger className="w-full">
                               <SelectValue placeholder="Pilih" />
                             </SelectTrigger>
                           </FormControl>
@@ -275,7 +275,7 @@ export default function KeluargaModule({ initialData, masters, isLoading }: Prop
                         <FormLabel>Status Tanah</FormLabel>
                         <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
-                            <SelectTrigger>
+                            <SelectTrigger className="w-full">
                               <SelectValue placeholder="Pilih" />
                             </SelectTrigger>
                           </FormControl>
@@ -302,7 +302,7 @@ export default function KeluargaModule({ initialData, masters, isLoading }: Prop
                         <FormLabel>Kelurahan</FormLabel>
                         <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
-                            <SelectTrigger>
+                            <SelectTrigger className="w-full">
                               <SelectValue placeholder="Pilih" />
                             </SelectTrigger>
                           </FormControl>
