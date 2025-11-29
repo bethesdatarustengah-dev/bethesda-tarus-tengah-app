@@ -59,8 +59,9 @@ type MasterCollections = {
 };
 
 type Props = {
-  initialData: Jemaat[];
+  initialData: Jemaat[] | undefined;
   masters: MasterCollections;
+  isLoading?: boolean;
 };
 
 const formSchema = z.object({
@@ -93,8 +94,14 @@ type FormValues = z.infer<typeof formSchema>;
 
 const normalizeStatus = (value: string) => value.toLowerCase().includes("kepala");
 
-export default function JemaatModule({ initialData, masters }: Props) {
-  const [items, setItems] = useState(initialData);
+export default function JemaatModule({ initialData, masters, isLoading }: Props) {
+  const [items, setItems] = useState(initialData ?? []);
+
+  useMemo(() => {
+    if (initialData) {
+      setItems(initialData);
+    }
+  }, [initialData]);
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -129,17 +136,17 @@ export default function JemaatModule({ initialData, masters }: Props) {
       const headPayload =
         isKepala && values.keluargaBaru
           ? {
-              nikKepala: values.keluargaBaru.nikKepala,
-              idStatusKepemilikan: values.keluargaBaru.idStatusKepemilikan,
-              idStatusTanah: values.keluargaBaru.idStatusTanah,
-              idRayon: values.keluargaBaru.idRayon,
-              alamat: {
-                idKelurahan: values.keluargaBaru.idKelurahan,
-                jalan: values.keluargaBaru.jalan,
-                RT: values.keluargaBaru.RT,
-                RW: values.keluargaBaru.RW,
-              },
-            }
+            nikKepala: values.keluargaBaru.nikKepala,
+            idStatusKepemilikan: values.keluargaBaru.idStatusKepemilikan,
+            idStatusTanah: values.keluargaBaru.idStatusTanah,
+            idRayon: values.keluargaBaru.idRayon,
+            alamat: {
+              idKelurahan: values.keluargaBaru.idKelurahan,
+              jalan: values.keluargaBaru.jalan,
+              RT: values.keluargaBaru.RT,
+              RW: values.keluargaBaru.RW,
+            },
+          }
           : undefined;
 
       const payload = {
@@ -660,18 +667,30 @@ export default function JemaatModule({ initialData, masters }: Props) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {items.map((item) => (
-              <TableRow key={item.idJemaat}>
-                <TableCell className="font-mono text-sm">{item.idJemaat}</TableCell>
-                <TableCell>{item.nama}</TableCell>
-                <TableCell>{item.status?.status ?? "-"}</TableCell>
-                <TableCell>{item.keluarga?.rayon?.namaRayon ?? "-"}</TableCell>
-                <TableCell className="space-x-2 text-right">
-                  <Button size="sm" variant="outline" onClick={() => handleEdit(item)}>Edit</Button>
-                  <Button size="sm" variant="destructive" onClick={() => handleDelete(item.idJemaat)}>Hapus</Button>
-                </TableCell>
-              </TableRow>
-            ))}
+            {isLoading ? (
+              Array.from({ length: 5 }).map((_, i) => (
+                <TableRow key={i}>
+                  <TableCell><div className="h-4 w-24 animate-pulse rounded bg-muted" /></TableCell>
+                  <TableCell><div className="h-4 w-32 animate-pulse rounded bg-muted" /></TableCell>
+                  <TableCell><div className="h-4 w-20 animate-pulse rounded bg-muted" /></TableCell>
+                  <TableCell><div className="h-4 w-16 animate-pulse rounded bg-muted" /></TableCell>
+                  <TableCell className="text-right"><div className="ml-auto h-8 w-16 animate-pulse rounded bg-muted" /></TableCell>
+                </TableRow>
+              ))
+            ) : (
+              items.map((item) => (
+                <TableRow key={item.idJemaat}>
+                  <TableCell className="font-mono text-sm">{item.idJemaat}</TableCell>
+                  <TableCell>{item.nama}</TableCell>
+                  <TableCell>{item.status?.status ?? "-"}</TableCell>
+                  <TableCell>{item.keluarga?.rayon?.namaRayon ?? "-"}</TableCell>
+                  <TableCell className="space-x-2 text-right">
+                    <Button size="sm" variant="outline" onClick={() => handleEdit(item)}>Edit</Button>
+                    <Button size="sm" variant="destructive" onClick={() => handleDelete(item.idJemaat)}>Hapus</Button>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       </div>

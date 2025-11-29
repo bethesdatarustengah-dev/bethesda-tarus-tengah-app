@@ -35,11 +35,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import type { MasterDataset, MasterField } from "@/constants/master-datasets";
 
 type MasterItem = Record<string, unknown>;
-type DropdownOption = { id: string; name: string; [key: string]: unknown };
+type DropdownOption = { id: string; name: string;[key: string]: unknown };
 
 type Props = {
   config: MasterDataset;
-  initialItems: MasterItem[];
+  initialItems: MasterItem[] | undefined;
+  isLoading?: boolean;
 };
 
 const buildSchema = (fields: MasterDataset["fields"]) =>
@@ -68,8 +69,8 @@ const defaultValues = (fields: MasterDataset["fields"]) =>
  */
 const getIdFieldForDropdown = (fieldName: string): string => fieldName;
 
-export const MasterDataManager = ({ config, initialItems }: Props) => {
-  const [items, setItems] = useState<MasterItem[]>(initialItems);
+export const MasterDataManager = ({ config, initialItems, isLoading }: Props) => {
+  const [items, setItems] = useState<MasterItem[]>(initialItems ?? []);
   const [createOpen, setCreateOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<MasterItem | null>(null);
 
@@ -92,36 +93,6 @@ export const MasterDataManager = ({ config, initialItems }: Props) => {
     editForm.reset(defaultValues(config.fields));
     setDropdownOptions({});
   };
-
-  // Client-side fallback: if server didn't provide initial items, try fetching from API route
-  useEffect(() => {
-    let mounted = true;
-
-    const tryFetch = async () => {
-      if (items.length > 0) return;
-
-      try {
-        const res = await fetch(config.apiPath);
-        const data = await res.json();
-
-        if (res.ok && data?.data?.items) {
-          if (!mounted) return;
-          setItems(data.data.items);
-        } else if (res.ok && Array.isArray(data?.data)) {
-          if (!mounted) return;
-          setItems(data.data);
-        }
-      } catch (err) {
-        // eslint-disable-next-line no-console
-        console.error("Client fallback fetch failed for", config.apiPath, err);
-      }
-    };
-
-    tryFetch();
-
-    return () => { mounted = false; };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [config.apiPath]);
 
   // Keep items in sync when initialItems prop changes (e.g. when navigating between slugs)
   useEffect(() => {
@@ -295,19 +266,19 @@ export const MasterDataManager = ({ config, initialItems }: Props) => {
                   </FormControl>
                   <SelectContent>
                     {loadingDropdowns[field.name] ? (
-                        <SelectItem value="__loading" disabled>
-                          Memuat...
-                        </SelectItem>
-                      ) : (dropdownOptions[field.name] || []).length > 0 ? (
+                      <SelectItem value="__loading" disabled>
+                        Memuat...
+                      </SelectItem>
+                    ) : (dropdownOptions[field.name] || []).length > 0 ? (
                       (dropdownOptions[field.name] || []).map((option) => (
                         <SelectItem key={option.id} value={option.id}>
                           {option.name}
                         </SelectItem>
                       ))
                     ) : (
-                        <SelectItem value="__no_options" disabled>
-                          Tidak ada pilihan
-                        </SelectItem>
+                      <SelectItem value="__no_options" disabled>
+                        Tidak ada pilihan
+                      </SelectItem>
                     )}
                   </SelectContent>
                 </Select>
@@ -361,35 +332,50 @@ export const MasterDataManager = ({ config, initialItems }: Props) => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {items.map((item) => (
-              <TableRow key={String(item[config.idField])}>
-                {config.columns.map((column) => (
-                  <TableCell key={column.name}>
-                    {item[column.name] == null
-                      ? "-"
-                      : typeof item[column.name] === "object"
-                      ? JSON.stringify(item[column.name])
-                      : String(item[column.name])}
+            {isLoading ? (
+              Array.from({ length: 5 }).map((_, i) => (
+                <TableRow key={i}>
+                  {config.columns.map((column) => (
+                    <TableCell key={column.name}>
+                      <div className="h-4 w-24 animate-pulse rounded bg-muted" />
+                    </TableCell>
+                  ))}
+                  <TableCell className="text-right">
+                    <div className="ml-auto h-8 w-16 animate-pulse rounded bg-muted" />
                   </TableCell>
-                ))}
-                <TableCell className="space-x-2 text-right">
-                  <Button
-                    onClick={() => openEditDialog(item)}
-                    size="sm"
-                    variant="outline"
-                  >
-                    Edit
-                  </Button>
-                  <Button
-                    onClick={() => handleDelete(item)}
-                    size="sm"
-                    variant="destructive"
-                  >
-                    Hapus
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
+                </TableRow>
+              ))
+            ) : (
+              items.map((item) => (
+                <TableRow key={String(item[config.idField])}>
+                  {config.columns.map((column) => (
+                    <TableCell key={column.name}>
+                      {item[column.name] == null
+                        ? "-"
+                        : typeof item[column.name] === "object"
+                          ? JSON.stringify(item[column.name])
+                          : String(item[column.name])}
+                    </TableCell>
+                  ))}
+                  <TableCell className="space-x-2 text-right">
+                    <Button
+                      onClick={() => openEditDialog(item)}
+                      size="sm"
+                      variant="outline"
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      onClick={() => handleDelete(item)}
+                      size="sm"
+                      variant="destructive"
+                    >
+                      Hapus
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       </div>

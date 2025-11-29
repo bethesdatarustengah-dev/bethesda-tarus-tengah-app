@@ -2,9 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 
 import { MASTER_DATASETS } from "@/constants/master-datasets";
 import { MasterDataManager } from "@/components/modules/master-data/master-data-manager";
+import { getMasterDataAction } from "@/actions/master-data";
 
 export default function MasterDatasetPageClient() {
   const params = useParams();
@@ -13,66 +15,20 @@ export default function MasterDatasetPageClient() {
 
   const config = MASTER_DATASETS.find((d) => d.slug === slug) ?? null;
 
-  const [items, setItems] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
+  // If no slug in URL, redirect to first dataset
   useEffect(() => {
-    // If no slug in URL, redirect to first dataset
     if (!slug) {
       const first = MASTER_DATASETS[0];
       if (first) router.push(`/master-data/${first.slug}`);
-      return;
     }
+  }, [slug, router]);
 
-    if (!config) {
-      setError(`Dataset dengan slug "${slug}" tidak tersedia.`);
-      setItems([]);
-      return;
-    }
-
-    let mounted = true;
-    setLoading(true);
-    setError(null);
-
-    fetch(config.apiPath)
-      .then(async (res) => {
-        const json = await res.json().catch(() => ({}));
-        if (!mounted) return;
-        if (!res.ok) {
-          setError(json?.message ?? "Gagal memuat data");
-          setItems([]);
-        } else {
-          // API shape: { data: { items, pagination } } or { data: items }
-          const payload = json?.data ?? json;
-          const list = payload?.items ?? (Array.isArray(payload) ? payload : []);
-          setItems(list);
-        }
-      })
-      .catch((err) => {
-        if (!mounted) return;
-        setError(String(err));
-        setItems([]);
-      })
-      .finally(() => {
-        if (!mounted) return;
-        setLoading(false);
-      });
-
-    return () => {
-      mounted = false;
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [slug]);
-
-  if (error) {
-    return (
-      <div className="p-6">
-        <h2 className="text-lg font-semibold">Terjadi kesalahan</h2>
-        <p className="text-sm text-muted-foreground">{error}</p>
-      </div>
-    );
-  }
+  const { data: items, isLoading, error } = useQuery({
+    queryKey: ["master-data", slug],
+    queryFn: () => getMasterDataAction(slug),
+    enabled: !!config,
+    staleTime: 5 * 60 * 1000, // 5 minutes for master data
+  });
 
   if (!config) {
     return (
@@ -83,12 +39,21 @@ export default function MasterDatasetPageClient() {
     );
   }
 
+  if (error) {
+    return (
+      <div className="p-6">
+        <h2 className="text-lg font-semibold">Terjadi kesalahan</h2>
+        <p className="text-sm text-muted-foreground">{(error as Error).message}</p>
+      </div>
+    );
+  }
+
   return (
     <MasterDataManager
       key={config.slug}
       config={config}
-      initialItems={items}
+      initialItems={items as any[]}
+      isLoading={isLoading}
     />
   );
 }
-

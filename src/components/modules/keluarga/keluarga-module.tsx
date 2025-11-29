@@ -48,8 +48,9 @@ type Masters = {
 };
 
 type Props = {
-  initialData: Keluarga[];
+  initialData: Keluarga[] | undefined;
   masters: Masters;
+  isLoading?: boolean;
 };
 
 const schema = z.object({
@@ -65,8 +66,16 @@ const schema = z.object({
 
 type FormValues = z.infer<typeof schema>;
 
-export default function KeluargaModule({ initialData, masters }: Props) {
-  const [items, setItems] = useState(initialData);
+import { useMemo } from "react";
+
+export default function KeluargaModule({ initialData, masters, isLoading }: Props) {
+  const [items, setItems] = useState(initialData ?? []);
+
+  useMemo(() => {
+    if (initialData) {
+      setItems(initialData);
+    }
+  }, [initialData]);
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -354,18 +363,30 @@ export default function KeluargaModule({ initialData, masters }: Props) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {items.map((item) => (
-              <TableRow key={item.idKeluarga}>
-                <TableCell className="font-mono text-sm">{item.idKeluarga}</TableCell>
-                <TableCell>{item.nikKepala}</TableCell>
-                <TableCell>{item.rayon?.namaRayon ?? "-"}</TableCell>
-                <TableCell>{item.statusKepemilikan?.status ?? "-"}</TableCell>
-                <TableCell className="space-x-2 text-right">
-                  <Button size="sm" variant="outline" onClick={() => handleEdit(item)}>Edit</Button>
-                  <Button size="sm" variant="destructive" onClick={() => handleDelete(item.idKeluarga)}>Hapus</Button>
-                </TableCell>
-              </TableRow>
-            ))}
+            {isLoading ? (
+              Array.from({ length: 5 }).map((_, i) => (
+                <TableRow key={i}>
+                  <TableCell><div className="h-4 w-24 animate-pulse rounded bg-muted" /></TableCell>
+                  <TableCell><div className="h-4 w-32 animate-pulse rounded bg-muted" /></TableCell>
+                  <TableCell><div className="h-4 w-20 animate-pulse rounded bg-muted" /></TableCell>
+                  <TableCell><div className="h-4 w-24 animate-pulse rounded bg-muted" /></TableCell>
+                  <TableCell className="text-right"><div className="ml-auto h-8 w-16 animate-pulse rounded bg-muted" /></TableCell>
+                </TableRow>
+              ))
+            ) : (
+              items.map((item) => (
+                <TableRow key={item.idKeluarga}>
+                  <TableCell className="font-mono text-sm">{item.idKeluarga}</TableCell>
+                  <TableCell>{item.nikKepala}</TableCell>
+                  <TableCell>{item.rayon?.namaRayon ?? "-"}</TableCell>
+                  <TableCell>{item.statusKepemilikan?.status ?? "-"}</TableCell>
+                  <TableCell className="space-x-2 text-right">
+                    <Button size="sm" variant="outline" onClick={() => handleEdit(item)}>Edit</Button>
+                    <Button size="sm" variant="destructive" onClick={() => handleDelete(item.idKeluarga)}>Hapus</Button>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       </div>

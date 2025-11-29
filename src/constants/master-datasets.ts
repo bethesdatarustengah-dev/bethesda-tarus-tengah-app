@@ -20,6 +20,7 @@ export type MasterDataset = {
   idField: string;
   fields: MasterField[];
   columns: MasterColumn[];
+  hidden?: boolean;
 };
 
 export const MASTER_DATASETS: MasterDataset[] = [
@@ -143,6 +144,7 @@ export const MASTER_DATASETS: MasterDataset[] = [
       { name: "idProv", label: "ID" },
       { name: "nama", label: "Provinsi" },
     ],
+    hidden: true,
   },
   {
     slug: "kota-kabupaten",
@@ -164,6 +166,7 @@ export const MASTER_DATASETS: MasterDataset[] = [
       { name: "nama", label: "Kota/Kabupaten" },
       { name: "idProv", label: "ID Provinsi" },
     ],
+    hidden: true,
   },
   {
     slug: "kecamatan",
@@ -185,6 +188,7 @@ export const MASTER_DATASETS: MasterDataset[] = [
       { name: "nama", label: "Kecamatan" },
       { name: "idKotaKab", label: "ID Kota/Kab" },
     ],
+    hidden: true,
   },
   {
     slug: "kelurahan",
@@ -206,6 +210,8 @@ export const MASTER_DATASETS: MasterDataset[] = [
       { name: "nama", label: "Kelurahan" },
       { name: "idKec", label: "ID Kecamatan" },
     ],
+    hidden: true,
   },
+
 ];
 

@@ -1,4 +1,4 @@
-import JemaatModule from "@/components/modules/jemaat/jemaat-module";
+import JemaatClientPage from "./client-page";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -66,11 +66,9 @@ export default async function JemaatPage() {
     rayon,
     kelurahan,
   ] = await Promise.all([
-    prisma.jemaat.findMany({
-      take: 50,
-      orderBy: { nama: "asc" },
-      include: jemaatInclude,
-    }),
+    // prisma.jemaat.findMany removed to enable instant navigation (Render First)
+    Promise.resolve([]), // Placeholder to keep array destructuring working
+
     getStatusDalamKeluarga(),
     getPendidikan(),
     getPekerjaan(),
@@ -88,8 +86,8 @@ export default async function JemaatPage() {
   }));
 
   return (
-    <JemaatModule
-      initialData={serializedJemaat}
+    <JemaatClientPage
+      initialData={undefined}
       masters={{
         status,
         pendidikan,

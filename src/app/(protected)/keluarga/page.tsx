@@ -1,4 +1,4 @@
-import KeluargaModule from "@/components/modules/keluarga/keluarga-module";
+import KeluargaClientPage from "./client-page";
 import { prisma } from "@/lib/prisma";
 import {
   getRayon,
@@ -37,10 +37,7 @@ const keluargaInclude = {
 
 export default async function KeluargaPage() {
   const [keluarga, rayon, statusKepemilikan, statusTanah, kelurahan] = await Promise.all([
-    prisma.keluarga.findMany({
-      orderBy: { nikKepala: "asc" },
-      include: keluargaInclude,
-    }),
+    Promise.resolve([]),
     getRayon(),
     getStatusKepemilikanRumah(),
     getStatusTanah(),
@@ -48,8 +45,8 @@ export default async function KeluargaPage() {
   ]);
 
   return (
-    <KeluargaModule
-      initialData={keluarga}
+    <KeluargaClientPage
+      initialData={undefined}
       masters={{
         statusKepemilikan,
         statusTanah,

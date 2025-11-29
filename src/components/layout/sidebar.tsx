@@ -1,5 +1,11 @@
 "use client";
 
+import { useQueryClient } from "@tanstack/react-query";
+import { getJemaatAction } from "@/actions/jemaat";
+import { getKeluargaAction } from "@/actions/keluarga";
+import { getDashboardStatsAction } from "@/actions/dashboard";
+import { getMasterDataAction } from "@/actions/master-data";
+
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -15,7 +21,7 @@ import {
   Award,
   Droplet,
   Star,
-  
+
 } from "lucide-react";
 import { useState } from "react";
 
@@ -57,6 +63,36 @@ export const Sidebar = () => {
   const isMasterActive = pathname?.startsWith("/master-data");
   const [sakramenOpen, setSakramenOpen] = useState(true);
   const [masterOpen, setMasterOpen] = useState(true);
+  const queryClient = useQueryClient();
+
+  const handlePrefetch = (href: string) => {
+    if (href === "/jemaat") {
+      queryClient.prefetchQuery({
+        queryKey: ["jemaat"],
+        queryFn: () => getJemaatAction(),
+        staleTime: 2 * 60 * 1000, // 2 minutes
+      });
+    } else if (href === "/keluarga") {
+      queryClient.prefetchQuery({
+        queryKey: ["keluarga"],
+        queryFn: () => getKeluargaAction(),
+        staleTime: 2 * 60 * 1000, // 2 minutes
+      });
+    } else if (href === "/dashboard") {
+      queryClient.prefetchQuery({
+        queryKey: ["dashboard-stats"],
+        queryFn: () => getDashboardStatsAction(),
+        staleTime: 2 * 60 * 1000, // 2 minutes
+      });
+    } else if (href.startsWith("/master-data/")) {
+      const slug = href.replace("/master-data/", "");
+      queryClient.prefetchQuery({
+        queryKey: ["master-data", slug],
+        queryFn: () => getMasterDataAction(slug),
+        staleTime: 5 * 60 * 1000, // 5 minutes
+      });
+    }
+  };
 
   return (
     <aside className="hidden w-64 border-r bg-card p-6 lg:block">
@@ -78,6 +114,7 @@ export const Sidebar = () => {
                 : "text-muted-foreground hover:bg-muted hover:text-foreground",
             )}
             href={item.href}
+            onMouseEnter={() => handlePrefetch(item.href)}
           >
             {item.icon ? (
               <item.icon className="h-4 w-4 text-muted-foreground" />
@@ -169,7 +206,7 @@ export const Sidebar = () => {
                 </Link>
 
                 {/* Master datasets */}
-                {MASTER_DATASETS.map((dataset) => {
+                {MASTER_DATASETS.filter(d => !d.hidden).map((dataset) => {
                   const Icon = datasetIconMap[dataset.slug] ?? Tag;
                   return (
                     <Link
