@@ -41,6 +41,11 @@ type Jemaat = {
   jenisKelamin: boolean;
   tanggalLahir: string;
   statusDalamKel: string;
+  golDarah?: string | null;
+  idPendidikan?: string | null;
+  idPekerjaan?: string | null;
+  idPendapatan?: string | null;
+  idJaminan?: string | null;
   status?: { status: string };
   keluarga?: {
     nikKepala: string;
@@ -193,7 +198,7 @@ export default function JemaatModule({
 
   const handleSubmit = async (values: FormValues) => {
     try {
-      if (isKepala && !values.keluargaBaru) {
+      if (isKepala && !values.keluargaBaru && !editingId) {
         toast.error("Lengkapi data keluarga baru untuk kepala keluarga");
         return;
       }
@@ -292,11 +297,11 @@ export default function JemaatModule({
         ? (item.tanggalLahir as any).toISOString().split("T")[0]
         : String(item.tanggalLahir).split("T")[0],
       statusDalamKel: item.statusDalamKel,
-      golDarah: undefined,
-      idPendidikan: undefined,
-      idPekerjaan: undefined,
-      idPendapatan: undefined,
-      idJaminan: undefined,
+      golDarah: item.golDarah ?? undefined,
+      idPendidikan: item.idPendidikan ?? undefined,
+      idPekerjaan: item.idPekerjaan ?? undefined,
+      idPendapatan: item.idPendapatan ?? undefined,
+      idJaminan: item.idJaminan ?? undefined,
       nikKepalaKeluarga: item.keluarga?.nikKepala,
     });
     setOpen(true);
@@ -342,7 +347,7 @@ export default function JemaatModule({
                       <FormItem>
                         <FormLabel>ID Jemaat (NIK)</FormLabel>
                         <FormControl>
-                          <Input {...field} />
+                          <Input {...field} disabled={!!editingId} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -549,7 +554,7 @@ export default function JemaatModule({
                   />
                 )}
 
-                {isKepala && (
+                {isKepala && !editingId && (
                   <div className="space-y-4 rounded-lg border p-4">
                     <h4 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
                       Data Keluarga Baru
