@@ -38,6 +38,15 @@ import { DataFilter, FilterConfig } from "@/components/ui/data-filter";
 type Keluarga = {
   idKeluarga: string;
   nikKepala: string;
+  idRayon: string;
+  idStatusKepemilikan: string;
+  idStatusTanah: string;
+  alamat: {
+    idKelurahan: string;
+    jalan: string;
+    RT: number;
+    RW: number;
+  };
   rayon?: { namaRayon: string };
   statusKepemilikan?: { status: string };
   jemaat?: Array<{ idJemaat: string; nama: string }>;
@@ -193,13 +202,13 @@ export default function KeluargaModule({
     setEditingId(item.idKeluarga);
     form.reset({
       nikKepala: item.nikKepala,
-      idStatusKepemilikan: undefined,
-      idStatusTanah: undefined,
-      idRayon: undefined,
-      idKelurahan: undefined,
-      jalan: undefined,
-      RT: undefined,
-      RW: undefined,
+      idStatusKepemilikan: item.idStatusKepemilikan,
+      idStatusTanah: item.idStatusTanah,
+      idRayon: item.idRayon,
+      idKelurahan: item.alamat.idKelurahan,
+      jalan: item.alamat.jalan,
+      RT: item.alamat.RT,
+      RW: item.alamat.RW,
     });
     setOpen(true);
   };
@@ -242,7 +251,7 @@ export default function KeluargaModule({
                     <FormItem>
                       <FormLabel>NIK Kepala Keluarga</FormLabel>
                       <FormControl>
-                        <Input {...field} />
+                        <Input {...field} disabled={!!editingId} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -403,7 +412,7 @@ export default function KeluargaModule({
             </Form>
           </DialogContent>
         </Dialog>
-      </div>
+      </div >
 
       <div className="flex flex-col gap-4">
         <div className="relative flex-1">
@@ -463,7 +472,7 @@ export default function KeluargaModule({
           </TableBody>
         </Table>
       </div>
-    </div>
+    </div >
   );
 }
 
