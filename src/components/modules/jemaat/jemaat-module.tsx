@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
+import { Search } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -104,6 +105,17 @@ export default function JemaatModule({ initialData, masters, isLoading }: Props)
   }, [initialData]);
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const filteredItems = useMemo(() => {
+    if (!searchQuery) return items;
+    const lowerQuery = searchQuery.toLowerCase();
+    return items.filter(
+      (item) =>
+        item.nama.toLowerCase().includes(lowerQuery) ||
+        item.idJemaat.toLowerCase().includes(lowerQuery)
+    );
+  }, [items, searchQuery]);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema) as any,
@@ -218,7 +230,9 @@ export default function JemaatModule({ initialData, masters, isLoading }: Props)
       idJemaat: item.idJemaat,
       nama: item.nama,
       jenisKelamin: item.jenisKelamin ? "L" : "P",
-      tanggalLahir: item.tanggalLahir.split("T")[0],
+      tanggalLahir: (item.tanggalLahir as any) instanceof Date
+        ? (item.tanggalLahir as any).toISOString().split("T")[0]
+        : String(item.tanggalLahir).split("T")[0],
       statusDalamKel: item.statusDalamKel,
       golDarah: undefined,
       idPendidikan: undefined,
@@ -643,6 +657,7 @@ export default function JemaatModule({ initialData, masters, isLoading }: Props)
                         />
                       </div>
                     </div>
+
                   </div>
                 )}
 
@@ -653,6 +668,16 @@ export default function JemaatModule({ initialData, masters, isLoading }: Props)
             </Form>
           </DialogContent>
         </Dialog>
+      </div>
+
+      <div className="relative max-w-sm">
+        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Cari berdasarkan NIK atau Nama..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="pl-9"
+        />
       </div>
 
       <div className="overflow-x-auto rounded-lg border bg-card">
@@ -678,7 +703,7 @@ export default function JemaatModule({ initialData, masters, isLoading }: Props)
                 </TableRow>
               ))
             ) : (
-              items.map((item) => (
+              filteredItems.map((item) => (
                 <TableRow key={item.idJemaat}>
                   <TableCell className="font-mono text-sm">{item.idJemaat}</TableCell>
                   <TableCell>{item.nama}</TableCell>

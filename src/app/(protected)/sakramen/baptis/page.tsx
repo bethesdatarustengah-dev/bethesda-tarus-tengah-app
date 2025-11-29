@@ -20,7 +20,13 @@ export default async function SakramenBaptisPage() {
       orderBy: { tanggal: "desc" },
       include: { jemaats: { select: { idJemaat: true, nama: true } } },
     }),
-    prisma.jemaat.findMany({ orderBy: { nama: "asc" }, select: { idJemaat: true, nama: true }, take: 200 }),
+    prisma.jemaat.findMany({ orderBy: { nama: "asc" }, take: 1000 }).then((items) =>
+      items.map((item) => ({
+        idJemaat: item.idJemaat,
+        nama: item.nama,
+        jenisKelamin: item.jenisKelamin,
+      }))
+    ),
     prisma.klasis.findMany({ orderBy: { nama: "asc" } }),
   ]);
   const serializeDate = (d: any) => (d instanceof Date ? d.toISOString() : String(d));

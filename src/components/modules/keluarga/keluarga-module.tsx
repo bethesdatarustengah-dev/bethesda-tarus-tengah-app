@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
+import { Search } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -38,6 +39,7 @@ type Keluarga = {
   nikKepala: string;
   rayon?: { namaRayon: string };
   statusKepemilikan?: { status: string };
+  jemaat?: Array<{ idJemaat: string; nama: string }>;
 };
 
 type Masters = {
@@ -78,6 +80,25 @@ export default function KeluargaModule({ initialData, masters, isLoading }: Prop
   }, [initialData]);
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const filteredItems = useMemo(() => {
+    if (!searchQuery) return items;
+    const lowerQuery = searchQuery.toLowerCase();
+    return items.filter((item) => {
+      const noKK = item.idKeluarga.toLowerCase();
+      const nikKepala = item.nikKepala.toLowerCase();
+
+      // Find head name
+      const headName = item.jemaat?.find((j) => j.idJemaat === item.nikKepala)?.nama.toLowerCase() ?? "";
+
+      return (
+        noKK.includes(lowerQuery) ||
+        nikKepala.includes(lowerQuery) ||
+        headName.includes(lowerQuery)
+      );
+    });
+  }, [items, searchQuery]);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema) as any,
@@ -351,6 +372,16 @@ export default function KeluargaModule({ initialData, masters, isLoading }: Prop
         </Dialog>
       </div>
 
+      <div className="relative max-w-sm">
+        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Cari berdasarkan No KK atau Nama Kepala Keluarga..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="pl-9"
+        />
+      </div>
+
       <div className="overflow-x-auto rounded-lg border bg-card">
         <Table>
           <TableHeader>
@@ -374,7 +405,7 @@ export default function KeluargaModule({ initialData, masters, isLoading }: Prop
                 </TableRow>
               ))
             ) : (
-              items.map((item) => (
+              filteredItems.map((item) => (
                 <TableRow key={item.idKeluarga}>
                   <TableCell className="font-mono text-sm">{item.idKeluarga}</TableCell>
                   <TableCell>{item.nikKepala}</TableCell>

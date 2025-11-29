@@ -44,11 +44,12 @@ export default async function SakramenPage() {
     }),
     prisma.jemaat.findMany({
       orderBy: { nama: "asc" },
-      select: {
-        idJemaat: true,
-        nama: true,
-      },
-      take: 200,
+    }).then((items) => {
+      return items.map((item) => ({
+        idJemaat: item.idJemaat,
+        nama: item.nama,
+        jenisKelamin: item.jenisKelamin,
+      }));
     }),
     getKlasis(),
   ]);

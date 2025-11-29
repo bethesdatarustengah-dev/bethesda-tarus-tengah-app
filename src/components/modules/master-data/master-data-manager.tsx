@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
+import { Search } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -73,6 +74,18 @@ export const MasterDataManager = ({ config, initialItems, isLoading }: Props) =>
   const [items, setItems] = useState<MasterItem[]>(initialItems ?? []);
   const [createOpen, setCreateOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<MasterItem | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const filteredItems = useMemo(() => {
+    if (!searchQuery) return items;
+    const lowerQuery = searchQuery.toLowerCase();
+    return items.filter((item) => {
+      return config.columns.some((col) => {
+        const val = item[col.name];
+        return String(val ?? "").toLowerCase().includes(lowerQuery);
+      });
+    });
+  }, [items, searchQuery, config.columns]);
 
   // Dropdown state: store options for each dropdown field
   const [dropdownOptions, setDropdownOptions] = useState<Record<string, DropdownOption[]>>({});
@@ -311,13 +324,18 @@ export const MasterDataManager = ({ config, initialItems, isLoading }: Props) =>
         </p>
       </div>
 
-      <div className="flex items-center justify-between rounded-lg border bg-card p-4">
-        <div>
-          <h3 className="text-sm font-medium">Tambah {config.label}</h3>
-          <p className="text-xs text-muted-foreground">Klik tombol untuk menambahkan data baru.</p>
-        </div>
-        <div>
+      <div className="flex flex-col gap-4">
+        <div className="flex justify-end">
           <Button onClick={() => setCreateOpen(true)}>Tambah</Button>
+        </div>
+        <div className="relative flex justify-start">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder={`Cari ${config.label}...`}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="max-w-sm pl-9"
+          />
         </div>
       </div>
 
@@ -346,7 +364,7 @@ export const MasterDataManager = ({ config, initialItems, isLoading }: Props) =>
                 </TableRow>
               ))
             ) : (
-              items.map((item) => (
+              filteredItems.map((item) => (
                 <TableRow key={String(item[config.idField])}>
                   {config.columns.map((column) => (
                     <TableCell key={column.name}>

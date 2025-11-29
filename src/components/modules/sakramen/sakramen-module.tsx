@@ -5,20 +5,25 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
+import { Check, ChevronsUpDown, Search } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Tabs,
   TabsContent,
-  TabsList,
-  TabsTrigger,
 } from "@/components/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -37,6 +42,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 
 type BaptisRecord = {
   idBaptis: string;
@@ -64,33 +83,24 @@ type Props = {
     pernikahan: PernikahanRecord[];
   };
   masters: {
-    jemaat: Array<{ idJemaat: string; nama: string }>;
+    jemaat: Array<{ idJemaat: string; nama: string; jenisKelamin: boolean }>;
     klasis: Array<{ idKlasis: string; nama: string }>;
   };
   initialTab?: "baptis" | "sidi" | "pernikahan";
 };
 
 const baptisSchema = z.object({
-  idJemaat: z.string().min(1),
-  idKlasis: z.string().min(1),
-  tanggal: z.string(),
+  idJemaat: z.string().min(1, "Jemaat harus dipilih"),
+  idKlasis: z.string().min(1, "Klasis harus dipilih"),
+  tanggal: z.string().min(1, "Tanggal harus diisi"),
 });
 
 const sidiSchema = baptisSchema;
 
 const pernikahanSchema = z.object({
-  klasis: z.string().min(2),
-  tanggal: z.string(),
-  jemaatIds: z
-    .string()
-    .min(3)
-    .transform((value) =>
-      value
-        .split(",")
-        .map((item) => item.trim())
-        .filter(Boolean),
-    )
-    .refine((arr) => arr.length >= 2, "Minimal 2 jemaat"),
+  klasis: z.string().min(1, "Klasis harus dipilih"),
+  tanggal: z.string().min(1, "Tanggal harus diisi"),
+  jemaatIds: z.array(z.string()).length(2, "Harus memilih 2 jemaat"),
 });
 
 type BaptisValues = z.infer<typeof baptisSchema>;
@@ -100,15 +110,52 @@ export default function SakramenModule({ data, masters, initialTab }: Props) {
   const [baptisList, setBaptisList] = useState(data.baptis);
   const [sidiList, setSidiList] = useState(data.sidi);
   const [pernikahanList, setPernikahanList] = useState(data.pernikahan);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const [openBaptis, setOpenBaptis] = useState(false);
+  const [openSidi, setOpenSidi] = useState(false);
+  const [openPernikahan, setOpenPernikahan] = useState(false);
+
+  const [openCombobox1, setOpenCombobox1] = useState(false);
+  const [openCombobox2, setOpenCombobox2] = useState(false);
+
+
+
+  const filteredBaptis = baptisList.filter((item) =>
+    item.jemaat?.nama.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const filteredSidi = sidiList.filter((item) =>
+    item.jemaat?.nama.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const filteredPernikahan = pernikahanList.filter((item) =>
+    item.jemaats.some((j) => j.nama.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
 
   const baptisForm = useForm<BaptisValues>({
-    resolver: zodResolver(baptisSchema) as any,
+    resolver: zodResolver(baptisSchema),
+    defaultValues: {
+      idJemaat: "",
+      idKlasis: "",
+      tanggal: "",
+    },
   });
   const sidiForm = useForm<BaptisValues>({
-    resolver: zodResolver(sidiSchema) as any,
+    resolver: zodResolver(sidiSchema),
+    defaultValues: {
+      idJemaat: "",
+      idKlasis: "",
+      tanggal: "",
+    },
   });
   const pernikahanForm = useForm<PernikahanValues>({
-    resolver: zodResolver(pernikahanSchema) as any,
+    resolver: zodResolver(pernikahanSchema),
+    defaultValues: {
+      klasis: "",
+      tanggal: "",
+      jemaatIds: [],
+    },
   });
 
   const createBaptis = async (values: BaptisValues) => {
@@ -122,6 +169,7 @@ export default function SakramenModule({ data, masters, initialTab }: Props) {
       if (!res.ok) throw new Error(payload?.message ?? "Gagal menyimpan");
       setBaptisList((prev) => [payload.data, ...prev]);
       baptisForm.reset();
+      setOpenBaptis(false);
       toast.success("Data baptis tersimpan");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Terjadi kesalahan");
@@ -139,6 +187,7 @@ export default function SakramenModule({ data, masters, initialTab }: Props) {
       if (!res.ok) throw new Error(payload?.message ?? "Gagal menyimpan");
       setSidiList((prev) => [payload.data, ...prev]);
       sidiForm.reset();
+      setOpenSidi(false);
       toast.success("Data sidi tersimpan");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Terjadi kesalahan");
@@ -146,6 +195,18 @@ export default function SakramenModule({ data, masters, initialTab }: Props) {
   };
 
   const createPernikahan = async (values: PernikahanValues) => {
+    const [id1, id2] = values.jemaatIds;
+    const jemaat1 = masters.jemaat.find((j) => j.idJemaat === id1);
+    const jemaat2 = masters.jemaat.find((j) => j.idJemaat === id2);
+
+    const gender1 = jemaat1?.jenisKelamin === true || String(jemaat1?.jenisKelamin) === "true";
+    const gender2 = jemaat2?.jenisKelamin === true || String(jemaat2?.jenisKelamin) === "true";
+
+    if (jemaat1 && jemaat2 && gender1 === gender2) {
+      toast.error("Pasangan tidak boleh berjenis kelamin sama");
+      return;
+    }
+
     try {
       const res = await fetch("/api/pernikahan", {
         method: "POST",
@@ -160,6 +221,7 @@ export default function SakramenModule({ data, masters, initialTab }: Props) {
       if (!res.ok) throw new Error(payload?.message ?? "Gagal menyimpan");
       setPernikahanList((prev) => [payload.data, ...prev]);
       pernikahanForm.reset();
+      setOpenPernikahan(false);
       toast.success("Data pernikahan tersimpan");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Terjadi kesalahan");
@@ -174,101 +236,105 @@ export default function SakramenModule({ data, masters, initialTab }: Props) {
       </p>
 
       <Tabs className="mt-6" defaultValue={initialTab ?? "baptis"}>
-        <TabsList>
-          <TabsTrigger value="baptis">Baptis</TabsTrigger>
-          <TabsTrigger value="sidi">Sidi</TabsTrigger>
-          <TabsTrigger value="pernikahan">Pernikahan</TabsTrigger>
-        </TabsList>
 
         <TabsContent value="baptis" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Tambah Data Baptis</CardTitle>
-              <CardDescription>
-                Pilih jemaat yang akan dicatat sakramen baptisnya.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Form {...baptisForm}>
-                <form
-                  className="grid gap-4 sm:grid-cols-3"
-                  onSubmit={baptisForm.handleSubmit(createBaptis)}
-                >
-                  <FormField
-                    control={baptisForm.control}
-                    name="idJemaat"
-                    render={({ field }) => (
-                      <FormItem className="col-span-2">
-                        <FormLabel>Jemaat</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
+          <div className="flex justify-end">
+            <Dialog open={openBaptis} onOpenChange={setOpenBaptis}>
+              <DialogTrigger asChild>
+                <Button>Tambah Data Baptis</Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[500px]">
+                <DialogHeader>
+                  <DialogTitle>Tambah Data Baptis</DialogTitle>
+                </DialogHeader>
+                <Form {...baptisForm}>
+                  <form
+                    className="grid gap-4 py-4"
+                    onSubmit={baptisForm.handleSubmit(createBaptis)}
+                  >
+                    <FormField
+                      control={baptisForm.control}
+                      name="idJemaat"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Jemaat</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Pilih jemaat" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent className="max-h-60">
+                              {masters.jemaat.map((item) => (
+                                <SelectItem key={item.idJemaat} value={item.idJemaat}>
+                                  {item.nama}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={baptisForm.control}
+                      name="idKlasis"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Klasis</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Pilih" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {masters.klasis.map((item) => (
+                                <SelectItem key={item.idKlasis} value={item.idKlasis}>
+                                  {item.nama}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={baptisForm.control}
+                      name="tanggal"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Tanggal</FormLabel>
                           <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Pilih jemaat" />
-                            </SelectTrigger>
+                            <Input type="date" {...field} />
                           </FormControl>
-                          <SelectContent className="max-h-60">
-                            {masters.jemaat.map((item) => (
-                              <SelectItem key={item.idJemaat} value={item.idJemaat}>
-                                {item.nama}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={baptisForm.control}
-                    name="idKlasis"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Klasis</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Pilih" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {masters.klasis.map((item) => (
-                              <SelectItem key={item.idKlasis} value={item.idKlasis}>
-                                {item.nama}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={baptisForm.control}
-                    name="tanggal"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Tanggal</FormLabel>
-                        <FormControl>
-                          <Input type="date" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <div className="sm:col-span-3">
-                    <Button type="submit">Simpan Baptis</Button>
-                  </div>
-                </form>
-              </Form>
-            </CardContent>
-          </Card>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <DialogFooter>
+                      <Button type="submit">Simpan Baptis</Button>
+                    </DialogFooter>
+                  </form>
+                </Form>
+              </DialogContent>
+            </Dialog>
+          </div>
 
           <Card>
             <CardHeader>
               <CardTitle>Riwayat Baptis</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              {baptisList.map((item) => (
+              <div className="mb-4">
+                <Input
+                  placeholder="Cari nama jemaat..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+              {filteredBaptis.map((item) => (
                 <div key={item.idBaptis} className="rounded-lg border p-3">
                   <p className="font-medium">{item.jemaat?.nama ?? "-"}</p>
                   <p className="text-sm text-muted-foreground">
@@ -281,91 +347,103 @@ export default function SakramenModule({ data, masters, initialTab }: Props) {
         </TabsContent>
 
         <TabsContent value="sidi" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Tambah Data Sidi</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Form {...sidiForm}>
-                <form
-                  className="grid gap-4 sm:grid-cols-3"
-                  onSubmit={sidiForm.handleSubmit(createSidi)}
-                >
-                  <FormField
-                    control={sidiForm.control}
-                    name="idJemaat"
-                    render={({ field }) => (
-                      <FormItem className="sm:col-span-2">
-                        <FormLabel>Jemaat</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
+          <div className="flex justify-end">
+            <Dialog open={openSidi} onOpenChange={setOpenSidi}>
+              <DialogTrigger asChild>
+                <Button>Tambah Data Sidi</Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[500px]">
+                <DialogHeader>
+                  <DialogTitle>Tambah Data Sidi</DialogTitle>
+                </DialogHeader>
+                <Form {...sidiForm}>
+                  <form
+                    className="grid gap-4 py-4"
+                    onSubmit={sidiForm.handleSubmit(createSidi)}
+                  >
+                    <FormField
+                      control={sidiForm.control}
+                      name="idJemaat"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Jemaat</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Pilih jemaat" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent className="max-h-60">
+                              {masters.jemaat.map((item) => (
+                                <SelectItem key={item.idJemaat} value={item.idJemaat}>
+                                  {item.nama}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={sidiForm.control}
+                      name="idKlasis"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Klasis</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Pilih" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {masters.klasis.map((item) => (
+                                <SelectItem key={item.idKlasis} value={item.idKlasis}>
+                                  {item.nama}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={sidiForm.control}
+                      name="tanggal"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Tanggal</FormLabel>
                           <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Pilih jemaat" />
-                            </SelectTrigger>
+                            <Input type="date" {...field} />
                           </FormControl>
-                          <SelectContent className="max-h-60">
-                            {masters.jemaat.map((item) => (
-                              <SelectItem key={item.idJemaat} value={item.idJemaat}>
-                                {item.nama}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={sidiForm.control}
-                    name="idKlasis"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Klasis</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Pilih" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {masters.klasis.map((item) => (
-                              <SelectItem key={item.idKlasis} value={item.idKlasis}>
-                                {item.nama}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={sidiForm.control}
-                    name="tanggal"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Tanggal</FormLabel>
-                        <FormControl>
-                          <Input type="date" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <div className="sm:col-span-3">
-                    <Button type="submit">Simpan Sidi</Button>
-                  </div>
-                </form>
-              </Form>
-            </CardContent>
-          </Card>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <DialogFooter>
+                      <Button type="submit">Simpan Sidi</Button>
+                    </DialogFooter>
+                  </form>
+                </Form>
+              </DialogContent>
+            </Dialog>
+          </div>
 
           <Card>
             <CardHeader>
               <CardTitle>Riwayat Sidi</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              {sidiList.map((item) => (
+              <div className="mb-4">
+                <Input
+                  placeholder="Cari nama jemaat..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+              {filteredSidi.map((item) => (
                 <div key={item.idSidi} className="rounded-lg border p-3">
                   <p className="font-medium">{item.jemaat?.nama ?? "-"}</p>
                   <p className="text-sm text-muted-foreground">
@@ -378,73 +456,218 @@ export default function SakramenModule({ data, masters, initialTab }: Props) {
         </TabsContent>
 
         <TabsContent value="pernikahan" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Tambah Data Pernikahan</CardTitle>
-              <CardDescription>
-                Masukkan ID jemaat (pisahkan dengan koma) minimal dua orang.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Form {...pernikahanForm}>
-                <form
-                  className="space-y-4"
-                  onSubmit={pernikahanForm.handleSubmit(createPernikahan)}
-                >
-                  <FormField
-                    control={pernikahanForm.control}
-                    name="klasis"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Nama Klasis</FormLabel>
-                        <FormControl>
-                          <Input {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={pernikahanForm.control}
-                    name="tanggal"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Tanggal</FormLabel>
-                        <FormControl>
-                          <Input type="date" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={pernikahanForm.control}
-                    name="jemaatIds"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>ID Jemaat (pisahkan dengan koma)</FormLabel>
-                        <FormControl>
-                          <Textarea
-                            placeholder="Contoh: JM0001, JM0002"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <Button type="submit">Simpan Pernikahan</Button>
-                </form>
-              </Form>
-            </CardContent>
-          </Card>
+          <div className="flex justify-end">
+            <Dialog open={openPernikahan} onOpenChange={setOpenPernikahan}>
+              <DialogTrigger asChild>
+                <Button>Tambah Data Pernikahan</Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[500px]">
+                <DialogHeader>
+                  <DialogTitle>Tambah Data Pernikahan</DialogTitle>
+                </DialogHeader>
+                <Form {...pernikahanForm}>
+                  <form
+                    className="grid gap-4 py-4"
+                    onSubmit={pernikahanForm.handleSubmit(createPernikahan)}
+                  >
+                    <FormField
+                      control={pernikahanForm.control}
+                      name="klasis"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Klasis</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Pilih klasis" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {masters.klasis.map((item) => (
+                                <SelectItem key={item.idKlasis} value={item.nama}>
+                                  {item.nama}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={pernikahanForm.control}
+                      name="tanggal"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Tanggal</FormLabel>
+                          <FormControl>
+                            <Input type="date" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    {/* Pasangan 1 */}
+                    <FormField
+                      control={pernikahanForm.control}
+                      name="jemaatIds"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-col">
+                          <FormLabel>Pasangan 1</FormLabel>
+                          <Popover open={openCombobox1} onOpenChange={setOpenCombobox1}>
+                            <PopoverTrigger asChild>
+                              <FormControl>
+                                <Button
+                                  variant="outline"
+                                  role="combobox"
+                                  className={cn(
+                                    "w-full justify-between",
+                                    !field.value?.[0] && "text-muted-foreground"
+                                  )}
+                                >
+                                  {field.value?.[0]
+                                    ? masters.jemaat.find(
+                                      (j) => j.idJemaat === field.value[0]
+                                    )?.nama
+                                    : "Pilih jemaat"}
+                                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                </Button>
+                              </FormControl>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-[400px] p-0">
+                              <Command>
+                                <CommandInput placeholder="Cari jemaat..." />
+                                <CommandList>
+                                  <CommandEmpty>Jemaat tidak ditemukan.</CommandEmpty>
+                                  <CommandGroup>
+                                    {masters.jemaat.map((jemaat) => (
+                                      <CommandItem
+                                        value={jemaat.nama}
+                                        key={jemaat.idJemaat}
+                                        onSelect={() => {
+                                          const newValue = [...(field.value || [])];
+                                          newValue[0] = jemaat.idJemaat;
+                                          field.onChange(newValue);
+                                          setOpenCombobox1(false);
+                                        }}
+                                      >
+                                        <Check
+                                          className={cn(
+                                            "mr-2 h-4 w-4",
+                                            jemaat.idJemaat === field.value?.[0]
+                                              ? "opacity-100"
+                                              : "opacity-0"
+                                          )}
+                                        />
+                                        {jemaat.nama}
+                                        <span className="ml-2 text-xs text-muted-foreground">
+                                          ({jemaat.jenisKelamin ? "L" : "P"})
+                                        </span>
+                                      </CommandItem>
+                                    ))}
+                                  </CommandGroup>
+                                </CommandList>
+                              </Command>
+                            </PopoverContent>
+                          </Popover>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    {/* Pasangan 2 */}
+                    <FormField
+                      control={pernikahanForm.control}
+                      name="jemaatIds"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-col">
+                          <FormLabel>Pasangan 2</FormLabel>
+                          <Popover open={openCombobox2} onOpenChange={setOpenCombobox2}>
+                            <PopoverTrigger asChild>
+                              <FormControl>
+                                <Button
+                                  variant="outline"
+                                  role="combobox"
+                                  className={cn(
+                                    "w-full justify-between",
+                                    !field.value?.[1] && "text-muted-foreground"
+                                  )}
+                                >
+                                  {field.value?.[1]
+                                    ? masters.jemaat.find(
+                                      (j) => j.idJemaat === field.value[1]
+                                    )?.nama
+                                    : "Pilih jemaat"}
+                                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                </Button>
+                              </FormControl>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-[400px] p-0">
+                              <Command>
+                                <CommandInput placeholder="Cari jemaat..." />
+                                <CommandList>
+                                  <CommandEmpty>Jemaat tidak ditemukan.</CommandEmpty>
+                                  <CommandGroup>
+                                    {masters.jemaat.map((jemaat) => (
+                                      <CommandItem
+                                        value={jemaat.nama}
+                                        key={jemaat.idJemaat}
+                                        onSelect={() => {
+                                          const newValue = [...(field.value || [])];
+                                          newValue[1] = jemaat.idJemaat;
+                                          field.onChange(newValue);
+                                          setOpenCombobox2(false);
+                                        }}
+                                      >
+                                        <Check
+                                          className={cn(
+                                            "mr-2 h-4 w-4",
+                                            jemaat.idJemaat === field.value?.[1]
+                                              ? "opacity-100"
+                                              : "opacity-0"
+                                          )}
+                                        />
+                                        {jemaat.nama}
+                                        <span className="ml-2 text-xs text-muted-foreground">
+                                          ({jemaat.jenisKelamin ? "L" : "P"})
+                                        </span>
+                                      </CommandItem>
+                                    ))}
+                                  </CommandGroup>
+                                </CommandList>
+                              </Command>
+                            </PopoverContent>
+                          </Popover>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <DialogFooter>
+                      <Button type="submit">Simpan Pernikahan</Button>
+                    </DialogFooter>
+                  </form>
+                </Form>
+              </DialogContent>
+            </Dialog>
+          </div>
 
           <Card>
             <CardHeader>
               <CardTitle>Riwayat Pernikahan</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              {pernikahanList.map((item) => (
+              <div className="relative mb-4">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Cari nama pasangan..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+              {filteredPernikahan.map((item) => (
                 <div key={item.idPernikahan} className="rounded-lg border p-3">
                   <p className="font-semibold">{item.klasis}</p>
                   <p className="text-sm text-muted-foreground">

@@ -24,6 +24,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Search } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 type Assignment = {
@@ -59,6 +68,20 @@ const buildDeletePath = (assignment: Assignment) =>
 
 export default function JemaatJabatanModule({ initialData, masters }: Props) {
   const [items, setItems] = useState(initialData);
+  const [open, setOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const filteredItems = items.filter((item) => {
+    const searchLower = searchQuery.toLowerCase();
+    return (
+      item.jabatan?.namaJabatan.toLowerCase().includes(searchLower) ||
+      masters.jemaat
+        .find((j) => j.idJemaat === item.idJemaat)
+        ?.nama.toLowerCase()
+        .includes(searchLower)
+    );
+  });
+
   const form = useForm<FormValues>({
     resolver: zodResolver(schema) as any,
     defaultValues: {
@@ -80,7 +103,9 @@ export default function JemaatJabatanModule({ initialData, masters }: Props) {
       }
 
       setItems((prev) => [payload.data, ...prev]);
+      setItems((prev) => [payload.data, ...prev]);
       form.reset({ statusAktif: true });
+      setOpen(false);
       toast.success("Jabatan jemaat tersimpan");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Terjadi kesalahan");
@@ -108,125 +133,149 @@ export default function JemaatJabatanModule({ initialData, masters }: Props) {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-semibold tracking-tight">Jabatan Jemaat</h2>
-        <p className="text-sm text-muted-foreground">
-          Catat penugasan jabatan pelayanan jemaat.
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-semibold tracking-tight">Jabatan Jemaat</h2>
+          <p className="text-sm text-muted-foreground">
+            Catat penugasan jabatan pelayanan jemaat.
+          </p>
+        </div>
+
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogTrigger asChild>
+            <Button>Tambah Jabatan</Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>Tambah Jabatan Jemaat</DialogTitle>
+            </DialogHeader>
+            <Form {...form}>
+              <form
+                className="grid gap-4 py-4"
+                onSubmit={form.handleSubmit(onSubmit)}
+              >
+                <FormField
+                  control={form.control}
+                  name="idJemaat"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Jemaat</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Pilih jemaat" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent className="max-h-60">
+                          {masters.jemaat.map((item) => (
+                            <SelectItem key={item.idJemaat} value={item.idJemaat}>
+                              {item.nama}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="idJabatan"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Jabatan</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Pilih jabatan" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {masters.jabatan.map((item) => (
+                            <SelectItem key={item.idJabatan} value={item.idJabatan}>
+                              {item.namaJabatan}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="tanggalMulai"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Tanggal Mulai</FormLabel>
+                        <FormControl>
+                          <Input type="date" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="tanggalBerakhir"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Tanggal Berakhir</FormLabel>
+                        <FormControl>
+                          <Input type="date" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                <FormField
+                  control={form.control}
+                  name="catatan"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Catatan</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="statusAktif"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center space-x-2">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={(checked) => field.onChange(!!checked)}
+                        />
+                      </FormControl>
+                      <FormLabel className="mb-0">Masih aktif</FormLabel>
+                    </FormItem>
+                  )}
+                />
+                <DialogFooter>
+                  <Button type="submit">Simpan Penugasan</Button>
+                </DialogFooter>
+              </form>
+            </Form>
+          </DialogContent>
+        </Dialog>
       </div>
 
-      <Form {...form}>
-        <form
-          className="grid gap-4 rounded-lg border bg-card p-4 sm:grid-cols-2"
-          onSubmit={form.handleSubmit(onSubmit)}
-        >
-          <FormField
-            control={form.control}
-            name="idJemaat"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Jemaat</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Pilih jemaat" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent className="max-h-60">
-                    {masters.jemaat.map((item) => (
-                      <SelectItem key={item.idJemaat} value={item.idJemaat}>
-                        {item.nama}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="idJabatan"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Jabatan</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Pilih jabatan" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {masters.jabatan.map((item) => (
-                      <SelectItem key={item.idJabatan} value={item.idJabatan}>
-                        {item.namaJabatan}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="tanggalMulai"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Tanggal Mulai</FormLabel>
-                <FormControl>
-                  <Input type="date" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="tanggalBerakhir"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Tanggal Berakhir</FormLabel>
-                <FormControl>
-                  <Input type="date" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="catatan"
-            render={({ field }) => (
-              <FormItem className="sm:col-span-2">
-                <FormLabel>Catatan</FormLabel>
-                <FormControl>
-                  <Input {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="statusAktif"
-            render={({ field }) => (
-              <FormItem className="flex items-center space-x-2">
-                <FormControl>
-                  <Checkbox
-                    checked={field.value}
-                    onCheckedChange={(checked) => field.onChange(!!checked)}
-                  />
-                </FormControl>
-                <FormLabel className="mb-0">Masih aktif</FormLabel>
-              </FormItem>
-            )}
-          />
-          <div className="sm:col-span-2">
-            <Button type="submit">Simpan Penugasan</Button>
-          </div>
-        </form>
-      </Form>
+      <div className="relative max-w-sm">
+        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Cari jemaat atau jabatan..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="pl-9"
+        />
+      </div>
 
       <div className="overflow-x-auto rounded-lg border bg-card">
         <Table>
@@ -240,7 +289,7 @@ export default function JemaatJabatanModule({ initialData, masters }: Props) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {items.map((item) => (
+            {filteredItems.map((item) => (
               <TableRow key={`${item.idJemaat}-${item.idJabatan}-${item.tanggalMulai}`}>
                 <TableCell>{item.idJemaat}</TableCell>
                 <TableCell>{item.jabatan?.namaJabatan ?? "-"}</TableCell>

@@ -5,6 +5,7 @@ import { z } from "zod";
 import { createResponse } from "@/lib/api-response";
 import { withErrorHandling } from "@/lib/api-handler";
 import { AppError, NotFoundError } from "@/lib/errors";
+import { generateId } from "@/lib/id";
 import { prisma } from "@/lib/prisma";
 
 const schema = z.object({
@@ -91,7 +92,10 @@ export const POST = withErrorHandling(async (request) => {
 
   const created = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     const baptis = await tx.baptis.create({
-      data: data as any,
+      data: {
+        ...data,
+        idBaptis: data.idBaptis ?? generateId(10),
+      },
     });
 
     await tx.jemaat.update({
