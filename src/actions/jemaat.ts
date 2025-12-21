@@ -5,36 +5,94 @@ import { prisma } from "@/lib/prisma";
 export async function getJemaatAction(
     page: number = 1,
     limit: number = 10,
-    filters?: Record<string, string>,
+    filters?: Record<string, string | string[]>,
     searchQuery?: string
 ) {
     try {
         const where: any = {};
 
         if (filters) {
-            if (filters.jenisKelamin && filters.jenisKelamin !== "all") {
-                where.jenisKelamin = filters.jenisKelamin === "L";
+            const hasValues = (key: string) => {
+                const val = filters[key];
+                if (!val) return false;
+                if (Array.isArray(val)) return val.length > 0 && !val.includes("all");
+                return val !== "all";
+            };
+
+            const getValues = (key: string): string[] => {
+                const val = filters[key];
+                if (!val) return [];
+                return Array.isArray(val) ? val : [val];
+            };
+
+            // Helper for simple "IN" filters
+            const applyInFilter = (key: string, dbField: string) => {
+                if (hasValues(key)) {
+                    where[dbField] = { in: getValues(key) };
+                }
+            };
+
+            if (hasValues("jenisKelamin")) {
+                where.jenisKelamin = { in: getValues("jenisKelamin") };
             }
-            if (filters.golDarah && filters.golDarah !== "all") {
-                where.golDarah = filters.golDarah;
+
+            applyInFilter("golDarah", "golDarah");
+            applyInFilter("statusDalamKel", "statusDalamKel");
+            applyInFilter("idPendidikan", "idPendidikan");
+            applyInFilter("idPekerjaan", "idPekerjaan");
+            applyInFilter("idPendapatan", "idPendapatan");
+            applyInFilter("idJaminan", "idJaminan");
+
+            if (hasValues("idRayon")) {
+                where.keluarga = { ...where.keluarga, idRayon: { in: getValues("idRayon") } };
             }
-            if (filters.statusDalamKel && filters.statusDalamKel !== "all") {
-                where.statusDalamKel = filters.statusDalamKel;
-            }
-            if (filters.idPendidikan && filters.idPendidikan !== "all") {
-                where.idPendidikan = filters.idPendidikan;
-            }
-            if (filters.idPekerjaan && filters.idPekerjaan !== "all") {
-                where.idPekerjaan = filters.idPekerjaan;
-            }
-            if (filters.idRayon && filters.idRayon !== "all") {
-                where.keluarga = { ...where.keluarga, idRayon: filters.idRayon };
-            }
-            if (filters.idStatusKepemilikan && filters.idStatusKepemilikan !== "all") {
-                where.keluarga = { ...where.keluarga, idStatusKepemilikan: filters.idStatusKepemilikan };
-            }
-            if (filters.idStatusTanah && filters.idStatusTanah !== "all") {
-                where.keluarga = { ...where.keluarga, idStatusTanah: filters.idStatusTanah };
+            // Removed other keluarga filters for brevity/focus as they aren't in main export UI yet, but logic is extensible
+
+            // Status Baptis & Sidi Logic
+            // If strictly one is selected, apply it. If both or none, do nothing (show all).
+            const applyStatusFilter = (key: string, dbField: string) => {
+                if (hasValues(key)) {
+                    const vals = getValues(key);
+                    // If both "sudah" and "belum" are present, it cancels out -> show all
+                    if (vals.includes("sudah") && vals.includes("belum")) {
+                        // no-op
+                    } else if (vals.includes("sudah")) {
+                        where[dbField] = { isNot: null };
+                    } else if (vals.includes("belum")) {
+                        where[dbField] = null;
+                    }
+                }
+            };
+
+            applyStatusFilter("statusBaptis", "baptisOwned");
+            applyStatusFilter("statusSidi", "sidiOwned");
+
+            // Kategori Umur Logic (OR condition)
+            if (hasValues("kategoriUmur")) {
+                const today = new Date();
+                const createDateFromAge = (age: number) => {
+                    const d = new Date(today);
+                    d.setFullYear(today.getFullYear() - age);
+                    return d;
+                };
+
+                const ageConditions = getValues("kategoriUmur").map(cat => {
+                    switch (cat) {
+                        case "anak": return { tanggalLahir: { gt: createDateFromAge(12) } };
+                        case "remaja": return { tanggalLahir: { lte: createDateFromAge(12), gt: createDateFromAge(18) } };
+                        case "pemuda": return { tanggalLahir: { lte: createDateFromAge(18), gt: createDateFromAge(36) } };
+                        case "dewasa": return { tanggalLahir: { lte: createDateFromAge(36), gt: createDateFromAge(60) } };
+                        case "lansia": return { tanggalLahir: { lte: createDateFromAge(60) } };
+                        default: return null;
+                    }
+                }).filter(Boolean);
+
+                if (ageConditions.length > 0) {
+                    where.OR = [
+                        ...(where.OR || []),
+                        ...ageConditions
+                    ];
+                }
             }
         }
 
@@ -105,8 +163,8 @@ export async function getJemaatAction(
                 totalPages: Math.ceil(total / limit),
             }
         };
-    } catch (error) {
+    } catch (error: any) {
         console.error("Failed to fetch jemaat:", error);
-        throw new Error("Failed to fetch jemaat data");
+        throw new Error(error.message || "Failed to fetch jemaat data");
     }
 }

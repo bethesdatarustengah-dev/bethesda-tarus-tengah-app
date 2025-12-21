@@ -6,7 +6,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { Search, Eye, Pencil, Trash2, MoreHorizontal } from "lucide-react";
+import { Search, Eye, Pencil, Trash2, MoreHorizontal, Download } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -74,6 +74,8 @@ type MasterCollections = {
 };
 
 import { PaginationControls } from "@/components/ui/pagination-controls";
+import { ExportModal } from "./export-modal";
+import { getJemaatAction } from "@/actions/jemaat";
 
 type Props = {
   data: Jemaat[];
@@ -146,6 +148,24 @@ export default function JemaatModule({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isExistingFamily, setIsExistingFamily] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [showExportModal, setShowExportModal] = useState(false);
+
+  const handleFetchAllForExport = async (overrideFilters?: any) => {
+    // Merge override filters with potentially existing filters, or use overrides primarily
+    // For export with "All Data" + manual filters, we use the manual filters.
+    // If "Current Page" is used, pagination is used (not handled here).
+
+    const finalFilters = overrideFilters ? { ...filters, ...overrideFilters } : filters;
+
+    // Fetch all data matching current filters
+    const res = await getJemaatAction(
+      1,
+      100000,
+      finalFilters,
+      searchQuery
+    );
+    return res.data;
+  };
 
   const filterConfig: FilterConfig[] = useMemo(() => [
     {
@@ -427,6 +447,14 @@ export default function JemaatModule({
             Kelola data jemaat beserta status keluarga.
           </p>
         </div>
+
+      </div>
+
+      <div className="flex items-center gap-2">
+        <Button variant="outline" onClick={() => setShowExportModal(true)}>
+          <Download className="mr-2 h-4 w-4" />
+          Export
+        </Button>
 
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
@@ -1088,6 +1116,20 @@ export default function JemaatModule({
           ))
         )}
       </div>
-    </div >
+      <ExportModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        currentPageData={items}
+        totalDataCount={metadata.total}
+        onFetchAllData={handleFetchAllForExport}
+        filterOptions={{
+          rayons: masters.rayon.map((r) => ({ label: r.namaRayon, value: r.idRayon })),
+          pendidikans: masters.pendidikan.map((p) => ({ label: p.jenjang, value: p.idPendidikan })),
+          pekerjaans: masters.pekerjaan.map((p) => ({ label: p.namaPekerjaan, value: p.idPekerjaan })),
+          pendapatans: masters.pendapatan.map((p) => ({ label: p.rentang, value: p.idPendapatan })),
+          jaminans: masters.jaminan.map((j) => ({ label: j.jenisJaminan, value: j.idJaminan })),
+        }}
+      />
+    </div>
   );
 }
