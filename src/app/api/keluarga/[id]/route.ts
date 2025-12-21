@@ -161,6 +161,16 @@ export const DELETE = withErrorHandling(async (_request, { params: paramsPromise
   const params = await paramsPromise;
   const { id } = params as { id: string };
   try {
+    const keluarga = await prisma.keluarga.findUnique({
+      where: { idKeluarga: id },
+      select: { fotoKartuKeluarga: true },
+    });
+
+    if (keluarga?.fotoKartuKeluarga) {
+      const { deleteFile } = await import("@/lib/supabase");
+      await deleteFile(keluarga.fotoKartuKeluarga, "kartu-keluarga");
+    }
+
     await prisma.keluarga.delete({
       where: { idKeluarga: id },
     });

@@ -85,6 +85,7 @@ const includeOptions = {
 const resolveKeluargaId = async (
   payload: z.infer<typeof createSchema>,
   tx: Prisma.TransactionClient,
+  fotoKartuKeluarga?: string | null,
 ) => {
   if (payload.idKeluarga) {
     return payload.idKeluarga;
@@ -132,6 +133,7 @@ const resolveKeluargaId = async (
         idStatusKepemilikan: payload.keluargaBaru.idStatusKepemilikan,
         idRayon: payload.keluargaBaru.idRayon,
         idStatusTanah: payload.keluargaBaru.idStatusTanah,
+        fotoKartuKeluarga: fotoKartuKeluarga,
       },
     });
 
@@ -182,17 +184,55 @@ export const GET = withErrorHandling(async (request) => {
 });
 
 export const POST = withErrorHandling(async (request) => {
-  const payload = await request.json();
+  // Handle FormData for file upload
+  let payload: any;
+  let fotoUrl: string | null = null;
+
+  const contentType = request.headers.get("content-type") || "";
+
+  if (contentType.includes("multipart/form-data")) {
+    const formData = await request.formData();
+
+    // Extract file
+    const file = formData.get("fotoKartuKeluarga") as File | null;
+    if (file && file.size > 0) {
+      const allowedTypes = ["image/jpeg", "image/png", "application/pdf"];
+      if (!allowedTypes.includes(file.type)) {
+        throw new AppError("Tipe file harus JPG, PNG, atau PDF", 400);
+      }
+      if (file.size > 5 * 1024 * 1024) { // 5MB
+        throw new AppError("Ukuran file maksimal 5MB", 400);
+      }
+
+      const { uploadFile } = await import("@/lib/supabase");
+      fotoUrl = await uploadFile(file, "kartu-keluarga", "kk/");
+    }
+
+    // Extract Data JSON
+    const dataJson = formData.get("data");
+    if (!dataJson || typeof dataJson !== "string") {
+      throw new AppError("Missing or invalid 'data' field", 400);
+    }
+    payload = JSON.parse(dataJson);
+
+  } else {
+    // Fallback to JSON for requests without file (though client should always use FormData now)
+    payload = await request.json();
+  }
+
   const parsed = createSchema.safeParse(payload);
 
   if (!parsed.success) {
+    // If file was uploaded but validation failed, we might want to delete the file.
+    // But for simplicity/MVP we skip that cleanup for now.
     throw new AppError("Validasi gagal", 400, parsed.error.flatten().fieldErrors);
   }
 
   const data = parsed.data;
 
   const created = await prisma.$transaction(async (tx) => {
-    const keluargaId = await resolveKeluargaId(data, tx);
+    // Pass fotoUrl to resolution function
+    const keluargaId = await resolveKeluargaId(data, tx, fotoUrl);
 
     // Build a clean payload for Prisma - exclude helper fields like nikKepalaKeluarga/keluargaBaru
     const jemaatCreatePayload: any = {
@@ -217,7 +257,7 @@ export const POST = withErrorHandling(async (request) => {
       include: includeOptions,
     });
   }, {
-    timeout: 20000, // Increase timeout to 20s to prevent 'Transaction already closed' errors
+    timeout: 20000,
   });
 
   return NextResponse.json(

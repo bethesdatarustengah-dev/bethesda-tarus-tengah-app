@@ -145,6 +145,7 @@ export default function JemaatModule({
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isExistingFamily, setIsExistingFamily] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   const filterConfig: FilterConfig[] = useMemo(() => [
     {
@@ -194,7 +195,6 @@ export default function JemaatModule({
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema) as any,
-    shouldUnregister: true, // Handle hidden fields validation
     defaultValues: {
       jenisKelamin: "L",
     },
@@ -323,22 +323,54 @@ export default function JemaatModule({
         form.reset();
         toast.success("Jemaat berhasil diperbarui");
       } else {
-        const res = await fetch("/api/jemaat", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
+        // Create new Jemaat
+        // Use FormData if creating new family (to support file upload)
+        // Or actually, we can ALWAYS use FormData for consistency, OR use it only when needed.
+        // Server handles both? No, server now expects FormData if multipart, or JSON if not.
+        // But for "keluargaBaru" we really want to upload.
 
-        const data = await res.json();
+        const isCreatingNewFamily = isKepala && !isExistingFamily && values.keluargaBaru;
 
-        if (!res.ok) {
-          throw new Error(data?.message ?? "Gagal menambahkan jemaat");
+        if (isCreatingNewFamily && selectedFile) {
+          const formData = new FormData();
+          formData.append("data", JSON.stringify(payload));
+          formData.append("fotoKartuKeluarga", selectedFile);
+
+          const res = await fetch("/api/jemaat", {
+            method: "POST",
+            body: formData,
+            // Content-Type header is explicitly undefined so browser sets boundary
+          });
+
+          const data = await res.json();
+          if (!res.ok) throw new Error(data?.message ?? "Gagal menambahkan jemaat");
+
+        } else {
+          // Standard JSON submission (if no file or not creating family)
+          // Ideally we should unify to FormData but server logic I wrote 
+          // "if (contentType.includes("multipart/form-data"))" handles it.
+          // Wait, if I send JSON, header is application/json. 
+          // If I send FormData, header is multipart/form-data.
+          // My server code handles both.
+
+          // HOWEVER, if isCreatingNewFamily is true but NO file selected, 
+          // we should still be able to use JSON?
+          // Yes.
+
+          const res = await fetch("/api/jemaat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+
+          const data = await res.json();
+          if (!res.ok) throw new Error(data?.message ?? "Gagal menambahkan jemaat");
         }
 
-        // setItems((prev) => [data.data, ...prev]);
         onDataChange();
         setOpen(false);
         form.reset();
+        setSelectedFile(null); // Reset file
         toast.success("Jemaat berhasil ditambahkan");
       }
     } catch (error) {
@@ -406,8 +438,29 @@ export default function JemaatModule({
             </DialogHeader>
             <Form {...form}>
               <form className="space-y-4" onSubmit={form.handleSubmit(handleSubmit, (errors) => {
-                console.error("Validation errors:", errors);
-                toast.error("Mohon lengkapi data yang valid");
+                console.error("Validation errors full:", JSON.stringify(errors, null, 2));
+
+                // Helper to flatten error messages
+                const getErrorPaths = (obj: any, prefix = ''): string[] => {
+                  return Object.keys(obj).reduce((acc: string[], key) => {
+                    const val = obj[key];
+                    const path = prefix ? `${prefix}.${key}` : key;
+                    if (val?.message) {
+                      return [...acc, `${path} (${val.message})`];
+                    }
+                    if (typeof val === 'object' && val !== null) {
+                      return [...acc, ...getErrorPaths(val, path)];
+                    }
+                    return acc;
+                  }, []);
+                };
+
+                const errorMessages = getErrorPaths(errors);
+                const desc = errorMessages.length > 3
+                  ? `${errorMessages.slice(0, 3).join(', ')}... (+${errorMessages.length - 3} lainnya)`
+                  : errorMessages.join(', ');
+
+                toast.error(`Validasi gagal: ${desc}`);
               })}>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <FormField
@@ -822,6 +875,27 @@ export default function JemaatModule({
                             />
                           </div>
                         </div>
+
+                        {/* File Upload for Family Card */}
+                        <div className="space-y-2 mt-4 border-t pt-4">
+                          <FormLabel className="text-base">Upload Foto Kartu Keluarga</FormLabel>
+                          <div className="grid w-full max-w-sm items-center gap-1.5">
+                            <FormLabel htmlFor="kk-file" className="text-xs text-muted-foreground">
+                              Format: PDF, JPG, PNG (Maks. 5MB)
+                            </FormLabel>
+                            <Input
+                              id="kk-file"
+                              type="file"
+                              accept="image/jpeg,image/png,application/pdf"
+                              onChange={(e) => {
+                                const files = e.target.files;
+                                if (files && files.length > 0) {
+                                  setSelectedFile(files[0]);
+                                }
+                              }}
+                            />
+                          </div>
+                        </div>
                       </>
                     )}
 
@@ -1014,6 +1088,6 @@ export default function JemaatModule({
           ))
         )}
       </div>
-    </div>
+    </div >
   );
 }
