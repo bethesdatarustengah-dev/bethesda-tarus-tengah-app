@@ -154,6 +154,25 @@ export default function JemaatModule({
   const [isExistingFamily, setIsExistingFamily] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [showExportModal, setShowExportModal] = useState(false);
+  const [localSearch, setLocalSearch] = useState(searchQuery);
+
+  useEffect(() => {
+    setLocalSearch(searchQuery);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      onSearchChange(localSearch);
+    }, 1000);
+    return () => clearTimeout(handler);
+  }, [localSearch, onSearchChange]);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      onSearchChange(localSearch);
+    }, 1000);
+    return () => clearTimeout(handler);
+  }, [localSearch, onSearchChange]);
 
   const handleFetchAllForExport = async (overrideFilters?: any) => {
     // Merge override filters with potentially existing filters, or use overrides primarily
@@ -926,8 +945,8 @@ export default function JemaatModule({
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Cari berdasarkan NIK atau Nama..."
-            value={searchQuery}
-            onChange={(e) => onSearchChange(e.target.value)}
+            value={localSearch}
+            onChange={(e) => setLocalSearch(e.target.value)}
             className="pl-9"
           />
         </div>

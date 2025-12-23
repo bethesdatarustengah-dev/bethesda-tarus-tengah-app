@@ -97,9 +97,12 @@ export async function getJemaatAction(
         }
 
         if (searchQuery) {
+            const isNumeric = /^\d+$/.test(searchQuery);
             where.OR = [
                 { nama: { contains: searchQuery, mode: "insensitive" } },
-                { idJemaat: { contains: searchQuery, mode: "insensitive" } }
+                // If it looks like NIK (numeric), try startsWith which is faster for indexes
+                // If not numeric, no point searching ID (char 16) usually
+                ...(isNumeric ? [{ idJemaat: { startsWith: searchQuery } }] : [])
             ];
         }
 
