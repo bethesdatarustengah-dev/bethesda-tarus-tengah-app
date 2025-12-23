@@ -143,6 +143,8 @@ model Kelurahan {
 
   kecamatan Kecamatan @relation(fields: [idKec], references: [idKec])
   alamat    Alamat[]
+
+  @@index([nama])
 }
 
 model Alamat {
@@ -170,6 +172,8 @@ model Keluarga {
   rayon             Rayon                  @relation(fields: [idRayon], references: [idRayon])
   statusTanah       StatusTanah            @relation(fields: [idStatusTanah], references: [idStatusTanah])
   jemaat            Jemaat[]
+
+  @@index([idRayon])
 }
 
 model Jemaat {
@@ -202,6 +206,7 @@ model Jemaat {
   jabatanRel       JemaatJabatan[]
 
   @@index([nama])
+  @@index([idKeluarga])
 }
 
 model Klasis {
