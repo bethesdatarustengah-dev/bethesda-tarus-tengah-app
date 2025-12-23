@@ -72,11 +72,12 @@ export const getJabatan = unstable_cache(
 
 export const getDashboardStats = unstable_cache(
     async () => {
-        const [totalJemaat, totalKeluarga, totalBaptis, totalPernikahan, allJemaat] = await prisma.$transaction([
+        const [totalJemaat, totalKeluarga, totalBaptis, totalPernikahan, totalSidi, allJemaat] = await prisma.$transaction([
             prisma.jemaat.count(),
             prisma.keluarga.count(),
             prisma.baptis.count(),
             prisma.pernikahan.count(),
+            prisma.sidi.count(),
             prisma.jemaat.findMany({
                 select: {
                     idJemaat: true,
@@ -158,7 +159,7 @@ export const getDashboardStats = unstable_cache(
         upcomingBirthdays.sort((a, b) => a.tanggal.getTime() - b.tanggal.getTime());
 
         return {
-            counts: { jemaat: totalJemaat, keluarga: totalKeluarga, baptis: totalBaptis, pernikahan: totalPernikahan },
+            counts: { jemaat: totalJemaat, keluarga: totalKeluarga, baptis: totalBaptis, pernikahan: totalPernikahan, sidi: totalSidi },
             genderStats: [
                 { name: "Laki-laki", value: genderStats.lakiLaki, fill: "#3b82f6" }, // Blue
                 { name: "Perempuan", value: genderStats.perempuan, fill: "#ec4899" }  // Pink

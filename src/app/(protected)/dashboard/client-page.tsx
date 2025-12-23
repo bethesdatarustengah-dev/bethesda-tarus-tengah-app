@@ -11,6 +11,7 @@ import {
     Calendar,
     PlusCircle,
     MapPin,
+    BookOpen,
 } from "lucide-react";
 import {
     PieChart,
@@ -33,6 +34,7 @@ interface DashboardStats {
         keluarga: number;
         baptis: number;
         pernikahan: number;
+        sidi: number;
     };
     genderStats: Array<{ name: string; value: number; fill: string }>;
     ageStats: Array<{ name: string; value: number }>;
@@ -87,6 +89,13 @@ export default function DashboardClientPage({
             bg: "bg-cyan-100 dark:bg-cyan-900/20",
         },
         {
+            label: "Data Sidi",
+            value: stats?.counts.sidi ?? 0,
+            icon: BookOpen,
+            color: "text-purple-600",
+            bg: "bg-purple-100 dark:bg-purple-900/20",
+        },
+        {
             label: "Data Pernikahan",
             value: stats?.counts.pernikahan ?? 0,
             icon: Heart,
@@ -126,7 +135,7 @@ export default function DashboardClientPage({
             </div>
 
             {/* Stat Cards */}
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
                 {statCards.map((card, i) => (
                     <div
                         key={i}
