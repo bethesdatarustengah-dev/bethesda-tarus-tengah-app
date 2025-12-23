@@ -22,7 +22,7 @@ const includeOptions = {
       nama: true,
       keluarga: {
         select: {
-          nikKepala: true,
+          noKK: true,
           rayon: true,
         },
       },
