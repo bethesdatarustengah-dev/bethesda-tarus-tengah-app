@@ -170,6 +170,13 @@ export default function KeluargaModule({
   });
 
   const handleSubmit = async (values: FormValues) => {
+    // Optimization: Dirty Checking
+    if (editingId && !form.formState.isDirty) {
+      toast.info("Tidak ada perubahan data");
+      setOpen(false);
+      return;
+    }
+
     try {
       const payload = {
         noKK: values.noKK,
@@ -204,7 +211,14 @@ export default function KeluargaModule({
         });
 
         const data = await res.json();
-        if (!res.ok) throw new Error(data?.message ?? "Gagal memperbarui keluarga");
+        if (!res.ok) {
+          if (data?.errors) {
+            Object.entries(data.errors).forEach(([key, msg]) => {
+              form.setError(key as any, { type: "server", message: msg as string });
+            });
+          }
+          throw new Error(data?.message ?? "Gagal memperbarui keluarga");
+        }
         // setItems((prev) => prev.map((it) => (it.idKeluarga === editingId ? data.data : it))); // CANNOT DO THIS ANYMORE
         onResetFilters(); // Trigger refetch by resetting or we need explicit refetch. 
         // Better: onDataChange()
@@ -225,6 +239,11 @@ export default function KeluargaModule({
         const data = await res.json();
 
         if (!res.ok) {
+          if (data?.errors) {
+            Object.entries(data.errors).forEach(([key, msg]) => {
+              form.setError(key as any, { type: "server", message: msg as string });
+            });
+          }
           throw new Error(data?.message ?? "Gagal menyimpan keluarga");
         }
 

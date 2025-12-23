@@ -217,6 +217,13 @@ export default function SakramenModule({
   });
 
   const createBaptis = async (values: BaptisValues) => {
+    // Optimization: Dirty Checking
+    if (editingBaptisId && !baptisForm.formState.isDirty) {
+      toast.info("Tidak ada perubahan data");
+      setOpenBaptis(false);
+      return;
+    }
+
     try {
       if (editingBaptisId) {
         const res = await fetch(`/api/baptis/${editingBaptisId}`, {
@@ -290,6 +297,13 @@ export default function SakramenModule({
   };
 
   const createSidi = async (values: BaptisValues) => {
+    // Optimization: Dirty Checking
+    if (editingSidiId && !sidiForm.formState.isDirty) {
+      toast.info("Tidak ada perubahan data");
+      setOpenSidi(false);
+      return;
+    }
+
     try {
       if (editingSidiId) {
         const res = await fetch(`/api/sidi/${editingSidiId}`, {
@@ -344,6 +358,13 @@ export default function SakramenModule({
   };
 
   const createPernikahan = async (values: PernikahanValues) => {
+    // Optimization: Dirty Checking
+    if (editingPernikahanId && !pernikahanForm.formState.isDirty) {
+      toast.info("Tidak ada perubahan data");
+      setOpenPernikahan(false);
+      return;
+    }
+
     const [id1, id2] = values.jemaatIds;
     const jemaat1 = masters.jemaat.find((j) => j.idJemaat === id1);
     const jemaat2 = masters.jemaat.find((j) => j.idJemaat === id2);

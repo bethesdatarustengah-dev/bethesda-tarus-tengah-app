@@ -167,6 +167,13 @@ export const MasterDataManager = ({ config, initialItems, isLoading }: Props) =>
   const handleUpdate = async (values: Record<string, string>) => {
     if (!editingItem) return;
 
+    // Optimization: Dirty Checking
+    if (!editForm.formState.isDirty) {
+      toast.info("Tidak ada perubahan data");
+      setEditingItem(null);
+      return;
+    }
+
     const id = editingItem[config.idField];
 
     if (!id) {

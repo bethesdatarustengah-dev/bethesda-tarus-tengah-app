@@ -139,6 +139,13 @@ export default function JemaatJabatanModule({
   });
 
   const onSubmit = async (values: FormValues) => {
+    // Optimization: Dirty Checking
+    if (editingItem && !form.formState.isDirty) {
+      toast.info("Tidak ada perubahan data");
+      setOpen(false);
+      return;
+    }
+
     try {
       if (editingItem) {
         const res = await fetch(

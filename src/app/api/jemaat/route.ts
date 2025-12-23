@@ -27,15 +27,15 @@ const jemaatSchema = z.object({
   nama: z.string().min(2).max(50),
   jenisKelamin: z.boolean(),
   tanggalLahir: z.coerce.date(),
-  golDarah: z.string().max(5).optional(),
+  golDarah: z.string().max(5).nullable().optional(),
   statusDalamKel: z.string().length(10),
-  idPendidikan: z.string().length(10).optional(),
-  idPekerjaan: z.string().length(10).optional(),
-  idPendapatan: z.string().length(10).optional(),
-  idJaminan: z.string().length(10).optional(),
-  idPernikahan: z.string().length(10).optional(),
-  idBaptis: z.string().length(10).optional(),
-  idSidi: z.string().length(10).optional(),
+  idPendidikan: z.string().length(10).nullable().optional(),
+  idPekerjaan: z.string().length(10).nullable().optional(),
+  idPendapatan: z.string().length(10).nullable().optional(),
+  idJaminan: z.string().length(10).nullable().optional(),
+  idPernikahan: z.string().length(10).nullable().optional(),
+  idBaptis: z.string().length(10).nullable().optional(),
+  idSidi: z.string().length(10).nullable().optional(),
 });
 
 const createSchema = jemaatSchema.extend({

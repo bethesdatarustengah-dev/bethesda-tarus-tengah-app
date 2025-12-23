@@ -103,11 +103,11 @@ const formSchema = z.object({
   jenisKelamin: z.enum(["L", "P"]),
   tanggalLahir: z.string(),
   statusDalamKel: z.string().min(1),
-  golDarah: z.string().max(5).optional(),
-  idPendidikan: z.string().optional(),
-  idPekerjaan: z.string().optional(),
-  idPendapatan: z.string().optional(),
-  idJaminan: z.string().optional(),
+  golDarah: z.string().max(5).nullable().optional(),
+  idPendidikan: z.string().nullable().optional(),
+  idPekerjaan: z.string().nullable().optional(),
+  idPendapatan: z.string().nullable().optional(),
+  idJaminan: z.string().nullable().optional(),
   noKK: z.string().length(16).regex(/^\d+$/).optional(),
   keluargaBaru: z
     .object({
@@ -246,7 +246,18 @@ export default function JemaatModule({
   }, [isKepala, isExistingFamily, form]);
 
   const handleSubmit = async (values: FormValues) => {
+    // Optimization: Dirty Checking
+    if (editingId && !form.formState.isDirty) {
+      toast.info("Tidak ada perubahan data");
+      setOpen(false);
+      return;
+    }
+
     try {
+      const isKepala = normalizeStatus(
+        masters.status.find((s) => s.idStatusDalamKel === values.statusDalamKel)?.status ?? "",
+      );
+
       if (isKepala && !isExistingFamily && !values.keluargaBaru && !editingId) {
         toast.error("Lengkapi data keluarga baru untuk kepala keluarga");
         return;
@@ -333,6 +344,11 @@ export default function JemaatModule({
         const data = await res.json();
 
         if (!res.ok) {
+          if (data?.errors) {
+            Object.entries(data.errors).forEach(([key, msg]) => {
+              form.setError(key as any, { type: "server", message: msg as string });
+            });
+          }
           throw new Error(data?.message ?? "Gagal memperbarui jemaat");
         }
 
@@ -363,7 +379,14 @@ export default function JemaatModule({
           });
 
           const data = await res.json();
-          if (!res.ok) throw new Error(data?.message ?? "Gagal menambahkan jemaat");
+          if (!res.ok) {
+            if (data?.errors) {
+              Object.entries(data.errors).forEach(([key, msg]) => {
+                form.setError(key as any, { type: "server", message: msg as string });
+              });
+            }
+            throw new Error(data?.message ?? "Gagal menambahkan jemaat");
+          }
 
         } else {
           // Standard JSON submission (if no file or not creating family)
@@ -384,7 +407,14 @@ export default function JemaatModule({
           });
 
           const data = await res.json();
-          if (!res.ok) throw new Error(data?.message ?? "Gagal menambahkan jemaat");
+          if (!res.ok) {
+            if (data?.errors) {
+              Object.entries(data.errors).forEach(([key, msg]) => {
+                form.setError(key as any, { type: "server", message: msg as string });
+              });
+            }
+            throw new Error(data?.message ?? "Gagal menambahkan jemaat");
+          }
         }
 
         onDataChange();
@@ -411,11 +441,11 @@ export default function JemaatModule({
         ? (item.tanggalLahir as any).toISOString().split("T")[0]
         : String(item.tanggalLahir).split("T")[0],
       statusDalamKel: item.statusDalamKel,
-      golDarah: item.golDarah ?? undefined,
-      idPendidikan: item.idPendidikan ?? undefined,
-      idPekerjaan: item.idPekerjaan ?? undefined,
-      idPendapatan: item.idPendapatan ?? undefined,
-      idJaminan: item.idJaminan ?? undefined,
+      golDarah: item.golDarah?.trim() ?? undefined,
+      idPendidikan: item.idPendidikan?.trim() ?? undefined,
+      idPekerjaan: item.idPekerjaan?.trim() ?? undefined,
+      idPendapatan: item.idPendapatan?.trim() ?? undefined,
+      idJaminan: item.idJaminan?.trim() ?? undefined,
       noKK: item.keluarga?.noKK ?? undefined,
     });
     setOpen(true);
@@ -438,6 +468,18 @@ export default function JemaatModule({
     router.push(`/jemaat/${encodeURIComponent(item.idJemaat)}`);
   };
 
+  const handleAdd = () => {
+    setEditingId(null);
+    form.reset({
+      idJemaat: "",
+      nama: "",
+      jenisKelamin: "L",
+      statusDalamKel: "",
+      // Reset others implicitly to undefined
+    });
+    setOpen(true);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -457,12 +499,10 @@ export default function JemaatModule({
         </Button>
 
         <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button>Tambah Jemaat</Button>
-          </DialogTrigger>
+          <Button onClick={handleAdd}>Tambah Jemaat</Button>
           <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
             <DialogHeader>
-              <DialogTitle>Tambah Jemaat</DialogTitle>
+              <DialogTitle>{editingId ? "Edit Jemaat" : "Tambah Jemaat"}</DialogTitle>
             </DialogHeader>
             <Form {...form}>
               <form className="space-y-4" onSubmit={form.handleSubmit(handleSubmit, (errors) => {
@@ -584,7 +624,7 @@ export default function JemaatModule({
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Golongan Darah</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value || ""}>
+                        <Select onValueChange={field.onChange} value={field.value || undefined}>
                           <FormControl>
                             <SelectTrigger className="w-full">
                               <SelectValue placeholder="Pilih Golongan Darah" />
@@ -608,7 +648,7 @@ export default function JemaatModule({
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Pendidikan</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value || undefined}>
                           <FormControl>
                             <SelectTrigger className="w-full">
                               <SelectValue placeholder="Pilih" />
@@ -632,7 +672,7 @@ export default function JemaatModule({
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Pekerjaan</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value || undefined}>
                           <FormControl>
                             <SelectTrigger className="w-full">
                               <SelectValue placeholder="Pilih" />
@@ -656,7 +696,7 @@ export default function JemaatModule({
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Pendapatan</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value || undefined}>
                           <FormControl>
                             <SelectTrigger className="w-full">
                               <SelectValue placeholder="Pilih" />
@@ -680,7 +720,7 @@ export default function JemaatModule({
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Jaminan Kesehatan</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value || undefined}>
                           <FormControl>
                             <SelectTrigger className="w-full">
                               <SelectValue placeholder="Pilih" />
