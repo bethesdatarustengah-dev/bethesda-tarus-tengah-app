@@ -51,3 +51,11 @@ export const readSession = async () => {
   }
 };
 
+
+export const verifySession = async () => {
+  const session = await readSession();
+  if (!session) {
+    throw new Error("Unauthorized: Session is invalid or expired.");
+  }
+  return session;
+};

@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
+import { verifySession } from "@/lib/session.server";
 
 export type ReportFilters = {
     rayon?: string;
@@ -13,6 +14,7 @@ export type ReportFilters = {
 };
 
 export async function getReportStats(filters: ReportFilters) {
+    await verifySession();
     try {
         const where: Prisma.JemaatWhereInput = {};
 

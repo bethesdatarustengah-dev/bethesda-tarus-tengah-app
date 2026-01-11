@@ -1,8 +1,10 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
+import { verifySession } from "@/lib/session.server";
 
 export async function getMasterDataAction(slug: string) {
+    await verifySession();
     try {
         switch (slug) {
             case "pendidikan":

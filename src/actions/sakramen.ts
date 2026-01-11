@@ -1,6 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
+import { verifySession } from "@/lib/session.server";
 
 export async function getSakramenAction(
     filters?: Record<string, string>,
@@ -8,6 +9,7 @@ export async function getSakramenAction(
     page: number = 1,
     limit: number = 10
 ) {
+    await verifySession();
     try {
         const skip = (page - 1) * limit;
 

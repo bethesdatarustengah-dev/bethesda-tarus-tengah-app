@@ -1,6 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
+import { verifySession } from "@/lib/session.server";
 
 export async function getKeluargaAction(
     page: number = 1,
@@ -8,6 +9,7 @@ export async function getKeluargaAction(
     filters?: Record<string, string>,
     searchQuery?: string
 ) {
+    await verifySession();
     try {
         const where: any = {};
 

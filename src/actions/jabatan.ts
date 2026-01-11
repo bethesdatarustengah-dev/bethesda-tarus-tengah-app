@@ -1,8 +1,10 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
+import { verifySession } from "@/lib/session.server";
 
 export async function getJabatanAction(filters?: Record<string, string>) {
+    await verifySession();
     try {
         const where: any = {};
 
