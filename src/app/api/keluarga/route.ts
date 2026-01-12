@@ -104,8 +104,8 @@ export const POST = withErrorHandling(async (request) => {
     if (!allowedTypes.includes(file.type)) {
       throw new AppError("Tipe file harus JPG, PNG, atau PDF", 400);
     }
-    if (file.size > 5 * 1024 * 1024) { // 5MB
-      throw new AppError("Ukuran file maksimal 5MB", 400);
+    if (file.size > 1 * 1024 * 1024) { // 1MB
+      throw new AppError("Ukuran file maksimal 1MB", 400);
     }
 
     // Upload using helper (need to import)
