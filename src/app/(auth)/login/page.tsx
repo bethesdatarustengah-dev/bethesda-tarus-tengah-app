@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
+import Image from "next/image";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -76,8 +77,20 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-muted px-4 py-12">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle>Masuk Admin</CardTitle>
-          <CardDescription>
+          <div className="flex justify-center mb-4">
+            <div className="relative h-24 w-24">
+              <Image
+                src="/logo-GMIT.png"
+                alt="Logo GMIT"
+                fill
+                className="object-contain"
+                priority
+                sizes="96px"
+              />
+            </div>
+          </div>
+          <CardTitle className="text-center">Masuk Admin</CardTitle>
+          <CardDescription className="text-center">
             Gunakan akun admin untuk mengelola pendataan jemaat.
           </CardDescription>
         </CardHeader>
@@ -127,4 +140,3 @@ export default function LoginPage() {
     </div>
   );
 }
-

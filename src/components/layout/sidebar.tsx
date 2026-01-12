@@ -5,6 +5,7 @@ import { getJemaatAction } from "@/actions/jemaat";
 import { getKeluargaAction } from "@/actions/keluarga";
 import { getDashboardStatsAction } from "@/actions/dashboard";
 import { getMasterDataAction } from "@/actions/master-data";
+import Image from "next/image";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -33,7 +34,7 @@ const navItems = [
   { href: "/jemaat", label: "Jemaat", icon: Users },
   { href: "/keluarga", label: "Keluarga", icon: Home },
   { href: "/laporan", label: "Laporan", icon: PieChart },
-  { href: "/jabatan", label: "Jabatan", icon: Briefcase }, // Place Jabatan below Laporan or above? Laporan is high level. Let's put it after Keluarga.
+  { href: "/jabatan", label: "Jabatan", icon: Briefcase },
 ];
 
 const SAKRAMEN_ITEMS = [
@@ -69,26 +70,26 @@ export const SidebarContent = () => {
       queryClient.prefetchQuery({
         queryKey: ["jemaat"],
         queryFn: () => getJemaatAction(),
-        staleTime: 2 * 60 * 1000, // 2 minutes
+        staleTime: 2 * 60 * 1000,
       });
     } else if (href === "/keluarga") {
       queryClient.prefetchQuery({
         queryKey: ["keluarga"],
         queryFn: () => getKeluargaAction(),
-        staleTime: 2 * 60 * 1000, // 2 minutes
+        staleTime: 2 * 60 * 1000,
       });
     } else if (href === "/dashboard") {
       queryClient.prefetchQuery({
         queryKey: ["dashboard-stats"],
         queryFn: () => getDashboardStatsAction(),
-        staleTime: 2 * 60 * 1000, // 2 minutes
+        staleTime: 2 * 60 * 1000,
       });
     } else if (href.startsWith("/master-data/")) {
       const slug = href.replace("/master-data/", "");
       queryClient.prefetchQuery({
         queryKey: ["master-data", slug],
         queryFn: () => getMasterDataAction(slug),
-        staleTime: 5 * 60 * 1000, // 5 minutes
+        staleTime: 5 * 60 * 1000,
       });
     }
   };
@@ -97,7 +98,17 @@ export const SidebarContent = () => {
     <div className="flex h-full flex-col gap-4">
       <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
         <Link href="/" className="flex items-center gap-2 font-semibold">
-          <span className="">GMIT Tarus</span>
+          <div className="relative h-8 w-8">
+            <Image
+              src="/logo-GMIT.png"
+              alt="Logo GMIT"
+              fill
+              sizes="32px"
+              className="object-contain"
+              priority
+            />
+          </div>
+          <span className="">GMIT Bethesda Tarus Tengah</span>
         </Link>
       </div>
       <div className="flex-1 overflow-auto py-2">

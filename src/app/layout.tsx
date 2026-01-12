@@ -17,8 +17,13 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "GMIT Tarus • Admin",
-  description: "Dashboard pendataan jemaat GMIT Tarus",
+  title: "GMIT Bethesda Tarus Tengah • Admin",
+  description: "Dashboard pendataan jemaat GMIT Bethesda Tarus Tengah",
+  icons: {
+    icon: "/favicon-32x32.png",
+    shortcut: "/favicon-32x32.png",
+    apple: "/logo-GMIT.png",
+  },
 };
 
 export default function RootLayout({

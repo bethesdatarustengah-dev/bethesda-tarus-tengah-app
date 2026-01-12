@@ -452,12 +452,18 @@ export default function KeluargaModule({
                     onChange={(e) => {
                       const files = e.target.files;
                       if (files && files.length > 0) {
-                        setSelectedFile(files[0]);
+                        const file = files[0];
+                        if (file.size > 1 * 1024 * 1024) {
+                          toast.error("Ukuran file maksimal 1MB");
+                          e.target.value = ""; // Reset input
+                          return;
+                        }
+                        setSelectedFile(file);
                         form.setValue("fotoKartuKeluarga", files);
                       }
                     }}
                   />
-                  <p className="text-xs text-muted-foreground">Maksimal 5MB.</p>
+                  <p className="text-xs text-muted-foreground">Maksimal 1MB.</p>
                 </div>
 
                 <DialogFooter>
