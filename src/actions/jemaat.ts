@@ -35,7 +35,15 @@ export async function getJemaatAction(
             };
 
             if (hasValues("jenisKelamin")) {
-                where.jenisKelamin = { in: getValues("jenisKelamin") };
+                const jkValues = getValues("jenisKelamin");
+                // If both L and P are present, do nothing (show all)
+                if (jkValues.includes("L") && jkValues.includes("P")) {
+                    // no-op
+                } else if (jkValues.includes("L")) {
+                    where.jenisKelamin = true;
+                } else if (jkValues.includes("P")) {
+                    where.jenisKelamin = false;
+                }
             }
 
             applyInFilter("golDarah", "golDarah");
